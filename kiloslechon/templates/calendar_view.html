@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Booking Calendar</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); color: var(--dark-brown); font-size: 14px; min-height: 100vh; display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .hidden { display: none !important; }
+
+    .wrapper { display: flex; width: 100%; min-height: 100vh; position: relative; }
+
+    /* SIDEBAR */
+    .sidebar { width: 250px; background-color: var(--dark-brown); color: var(--white); padding: 20px 15px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; }
+    .sidebar h2 { color: var(--tangerine); font-size: 22px; margin-bottom: 25px; text-align: center; font-weight: bold; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; margin-bottom: 8px; background: transparent; color: var(--vanilla); border-radius: 12px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.2s ease; }
+    .nav-btn:hover, .nav-btn.active { background-color: var(--tangerine); color: var(--white); }
+    .logout-link { margin-top: auto; background-color: var(--danger); color: white; justify-content: center; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; margin-left: 250px; padding: 25px; overflow-y: auto; min-height: 100vh; width: calc(100% - 250px); }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--vanilla); padding: 16px 22px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0d68f; flex-wrap: wrap; gap: 12px; }
+    .top-bar h1 { font-size: 24px; color: var(--dark-brown); margin-bottom: 2px; }
+    .top-bar p { color: #555; font-size: 13px; }
+
+    /* CALENDAR CONTAINER CARD WITH SHADOW */
+    .card { background: var(--white); padding: 22px; border-radius: 16px; box-shadow: 0 8px 24px rgba(46, 41, 16, 0.08); border: 1px solid #eae2b7; }
+    
+    .cal-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; background: #f3f1e2; padding: 12px 18px; border-radius: 10px; }
+    
+    .view-toggles { display: flex; gap: 6px; }
+    .view-btn { padding: 6px 14px; font-size: 13px; font-weight: bold; border: none; background: #fff; color: var(--dark-brown); border-radius: 6px; cursor: pointer; border: 1px solid #ccc; }
+    .view-btn.active { background: var(--brunswick-green); color: white; border-color: var(--brunswick-green); }
+
+    .nav-group { display: flex; align-items: center; gap: 12px; }
+    .nav-btn-cal { background: var(--vanilla); border: 1px solid var(--dark-brown); padding: 6px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--dark-brown); }
+    .nav-btn-cal:hover { background: var(--tangerine); color: white; border-color: var(--tangerine); }
+    
+    #cal-current-title { font-size: 17px; font-weight: bold; color: var(--dark-brown); min-width: 180px; text-align: center; }
+
+    /* CLEAN GRID WITHOUT CELL OUTLINES */
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+    .cal-col-header { font-weight: bold; font-size: 12px; color: var(--dark-brown); padding-bottom: 8px; border-bottom: 2px solid #ddd; margin-bottom: 6px; }
+    
+    .cal-cell { background: var(--light-bg); border: none; border-radius: 8px; padding: 8px; font-size: 13px; height: 85px; max-height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: 0.15s ease; }
+    .cal-cell:hover:not(.empty) { background: var(--vanilla); }
+    .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell.today { background: #fffdf0; box-shadow: inset 0 0 0 2px var(--tangerine); }
+    
+    .day-num { font-weight: bold; font-size: 15px; color: var(--dark-brown); margin-bottom: 3px; }
+    
+    /* BADGES */
+    .order-indicator { background: var(--brunswick-green); color: white; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-top: 2px; }
+    .holiday-indicator { background: #d9534f; color: white; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-top: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 100%; }
+
+    /* MODAL STYLING */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 480px; padding: 22px; border-radius: 12px; border: 3px solid var(--brunswick-green); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; background: #6c757d; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: 55px; flex-direction: row; justify-content: space-around; align-items: center; position: fixed; bottom: 0; top: auto; left: 0; padding: 4px; background-color: var(--dark-brown); box-shadow: 0 -4px 10px rgba(0,0,0,0.15); }
+      .sidebar h2, .nav-btn span.text, .logout-link { display: none; }
+      .nav-btn { justify-content: center; padding: 6px; font-size: 20px; width: auto; margin-bottom: 0; }
+      .main-content { margin-left: 0; width: 100%; padding: 12px 12px 80px 12px; }
+      .cal-cell { height: 70px; max-height: 70px; padding: 4px; font-size: 11px; }
+    }
+/* ORDER DROPDOWN SUBMENU */
+.nav-dropdown-container { 
+  width: 100%; 
+  margin-bottom: 8px; 
+}
+
+.dropdown-toggle-btn { 
+  width: 100%; 
+}
+
+.submenu-container { 
+  display: flex; 
+  flex-direction: column; 
+  padding-left: 20px; 
+  margin-top: 4px; 
+  gap: 4px; 
+}
+
+.submenu-container.hidden { 
+  display: none !important; 
+}
+
+.sub-nav-btn { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: rgba(255,255,255,0.05); 
+  color: var(--vanilla); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  transition: 0.2s ease; 
+}
+
+.sub-nav-btn:hover, .sub-nav-btn.active { 
+  background-color: var(--tangerine); 
+  color: var(--white); 
+}
+
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- SIDEBAR -->
+ <aside class="sidebar">
+    <h2>KilosLechón</h2>
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" title="Dashboard"><span>📋</span><span class="text">Dashboard</span></a>
+    
+    <!-- ORDER DROPDOWN -->
+    <div class="nav-dropdown-container">
+      <button type="button" class="nav-btn dropdown-toggle-btn" onclick="toggleOrderDropdown()">
+        <span>📦</span><span class="text">Order ▾</span>
+      </button>
+      <div id="order-submenu" class="submenu-container hidden">
+        <a href="{{ url_for('add_order') }}" class="sub-nav-btn">➕ Add</a>
+        <a href="{{ url_for('pending_orders') }}" class="sub-nav-btn">⏳ Pending</a>
+        <a href="{{ url_for('confirmed_orders') }}" class="sub-nav-btn">✅ Confirmed</a>
+      </div>
+    </div>
+
+    <a href="{{ url_for('customers') }}" class="nav-btn" title="Customers"><span>👥</span><span class="text">Customers</span></a>
+    <a href="{{ url_for('calendar_view') }}" class="nav-btn active" title="Calendar"><span>📅</span><span class="text">Calendar</span></a>
+    <a href="{{ url_for('inventory') }}" class="nav-btn" title="Inventory"><span>🐖</span><span class="text">Inventory</span></a>
+    <a href="{{ url_for('sales') }}" class="nav-btn " title="Sales"><span>📊</span><span class="text">Sales</span></a>
+    <a href="{{ url_for('archive') }}" class="nav-btn" title="Archive"><span>🗄️</span><span class="text">Archive</span></a>
+    <a href="{{ url_for('logout') }}" class="nav-btn logout-link" title="Logout"><span>🚪</span><span class="text">Logout</span></a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content fade-in">
+    <div class="top-bar">
+      <div>
+        <h1>Booking Calendar</h1>
+        <p>I-tap ang araw upang makita ang mga nakatakdang order at holidays</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- CALENDAR CONTROLS BAR -->
+      <div class="cal-header-bar">
+        <div class="view-toggles">
+          <button class="view-btn active" id="btn-month" onclick="switchView('month')">Month View</button>
+          <button class="view-btn" id="btn-week" onclick="switchView('week')">Week View</button>
+        </div>
+
+        <div class="nav-group">
+          <button class="nav-btn-cal" onclick="changePeriod(-1)">◄ Prev</button>
+          <span id="cal-current-title">November 2026</span>
+          <button class="nav-btn-cal" onclick="changePeriod(1)">Next ►</button>
+        </div>
+      </div>
+
+      <!-- CALENDAR GRID CONTAINER -->
+      <div id="calendar-grid" class="cal-grid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- DAY ORDERS & HOLIDAYS POPUP MODAL -->
+<div id="day-orders-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--brunswick-green); margin-bottom: 4px; font-size: 16px;">📅 Detalye sa Araw na Ito</h3>
+    <p id="modal-date-title" style="font-size: 12px; color: #666; margin-bottom: 12px; font-weight: bold;"></p>
+
+    <!-- Holiday Notice container sa loob ng modal -->
+    <div id="modal-holiday-container" class="hidden" style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-bottom: 12px;">
+      🎉 <span id="modal-holiday-text"></span>
+    </div>
+
+    <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Nakatakdang Orders:</div>
+    <div id="modal-orders-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; margin-bottom: 15px;">
+      <!-- Lalabas dito ang mga orders -->
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button type="button" class="btn" onclick="closeDayModal()">Isara</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentView = 'month';
+  let currentDate = new Date(2026, 10, 10); // November 10, 2026
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  // Philippine National Holidays & Laguna / Los Baños Local Observances (2026)
+  const philippineHolidays = {
+    '2026-01-01': "New Year's Day",
+    '2026-02-25': "EDSA People Power Anniversary",
+    '2026-04-02': "Maundy Thursday",
+    '2026-04-03': "Good Friday",
+    '2026-04-09': "Araw ng Kagitingan",
+    '2026-05-01': "Labor Day",
+    '2026-06-12': "Independence Day",
+    '2026-08-21': "Ninoy Aquino Day",
+    '2026-08-31': "National Heroes Day",
+    '2026-11-01': "All Saints' Day",
+    '2026-11-02': "All Souls' Day",
+    '2026-11-30': "Bonifacio Day",
+    '2026-12-08': "Feast of the Immaculate Conception",
+    '2026-12-25': "Christmas Day",
+    '2026-12-30': "Rizal Day",
+    // Local / Regional (Laguna & Los Baños specific highlights)
+    '2026-03-15': "Laguna Day (Provincial Holiday)",
+    '2026-09-17': "Los Baños Town Fiesta / Foundation Anniversary"
+  };
+
+  const mockBookings = {
+    '2026-11-12': [
+      { id: 101, customer: 'Juan Dela Cruz', item: 'Whole Lechon (Medium)', time: '10:00 AM' },
+      { id: 102, customer: 'Maria Santos', item: 'Paluto: Dinuguan', time: '02:00 PM' }
+    ],
+    '2026-11-15': [
+      { id: 105, customer: 'Pedro Penduko', item: 'Lechon Belly Roll', time: '11:00 AM' }
+    ],
+    '2026-11-30': [ // Bonifacio Day (Holiday + Order)
+      { id: 108, customer: 'Clara Reyes', item: 'Whole Lechon (Large Tier)', time: '04:00 PM' }
+    ]
+  };
+
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('btn-month').classList.toggle('active', view === 'month');
+    document.getElementById('btn-week').classList.toggle('active', view === 'week');
+    renderCalendar();
+  }
+
+  function changePeriod(delta) {
+    if (currentView === 'month') {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+    } else {
+      currentDate.setDate(currentDate.getDate() + (delta * 7));
+    }
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const titleEl = document.getElementById('cal-current-title');
+    grid.innerHTML = '';
+
+    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(dayName => {
+      const colHead = document.createElement('div');
+      colHead.className = 'cal-col-header';
+      colHead.innerText = dayName;
+      grid.appendChild(colHead);
+    });
+
+    if (currentView === 'month') {
+      renderMonthView(grid, titleEl);
+    } else {
+      renderWeekView(grid, titleEl);
+    }
+  }
+
+  function renderMonthView(grid, titleEl) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    titleEl.innerText = `${monthNames[month]} ${year}`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'cal-cell empty';
+      grid.appendChild(emptyCell);
+    }
+
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const cell = createDayCell(day, dateStr);
+      grid.appendChild(cell);
+    }
+  }
+
+  function renderWeekView(grid, titleEl) {
+    const startOfWeek = new Date(currentDate);
+    const dayOfWeek = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    titleEl.innerText = `${monthNames[startOfWeek.getMonth()].slice(0,3)} ${startOfWeek.getDate()} - ${monthNames[endOfWeek.getMonth()].slice(0,3)} ${endOfWeek.getDate()}, ${endOfWeek.getFullYear()}`;
+
+    for (let i = 0; i < 7; i++) {
+      const loopDate = new Date(startOfWeek);
+      loopDate.setDate(loopDate.getDate() + i);
+
+      const year = loopDate.getFullYear();
+      const month = String(loopDate.getMonth() + 1).padStart(2, '0');
+      const day = String(loopDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      const cell = createDayCell(loopDate.getDate(), dateStr, `${monthNames[loopDate.getMonth()].slice(0,3)} ${loopDate.getDate()}`);
+      grid.appendChild(cell);
+    }
+  }
+
+  function createDayCell(dayNum, dateStr, labelPrefix = '') {
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+
+    const todayStr = '2026-11-10';
+    if (dateStr === todayStr) {
+      cell.classList.add('today');
+    }
+
+    const numSpan = document.createElement('div');
+    numSpan.className = 'day-num';
+    numSpan.innerText = labelPrefix ? labelPrefix : dayNum;
+    cell.appendChild(numSpan);
+
+    // I-display ang Holiday Badge kung may holiday sa araw na ito
+    const holidayName = philippineHolidays[dateStr];
+    if (holidayName) {
+      const holBadge = document.createElement('div');
+      holBadge.className = 'holiday-indicator';
+      holBadge.innerText = holidayName;
+      cell.appendChild(holBadge);
+    }
+
+    // I-display ang Order Count Badge
+    const orders = mockBookings[dateStr] || [];
+    if (orders.length > 0) {
+      const indicator = document.createElement('div');
+      indicator.className = 'order-indicator';
+      indicator.innerText = `${orders.length} order${orders.length > 1 ? 's' : ''}`;
+      cell.appendChild(indicator);
+    }
+
+    cell.onclick = function() {
+      openDayModal(dateStr, orders, holidayName);
+    };
+
+    return cell;
+  }
+
+  function openDayModal(dateStr, orders, holidayName) {
+    document.getElementById('modal-date-title').innerText = `Petsa: ${dateStr}`;
+    
+    // Pamamahala sa Holiday Notice sa modal
+    const holContainer = document.getElementById('modal-holiday-container');
+    const holText = document.getElementById('modal-holiday-text');
+    if (holidayName) {
+      holText.innerText = holidayName;
+      holContainer.classList.remove('hidden');
+    } else {
+      holContainer.classList.add('hidden');
+    }
+
+    const container = document.getElementById('modal-orders-container');
+    container.innerHTML = '';
+
+    if (orders.length > 0) {
+      orders.forEach(ord => {
+        const itemBox = document.createElement('div');
+        itemBox.style.cssText = "background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 6px; font-size: 13px;";
+        itemBox.innerHTML = `
+          <strong>#${ord.id} - ${ord.customer}</strong><br>
+          <span style="color: #555;">${ord.item}</span><br>
+          <small style="color: var(--brunswick-green); font-weight: bold;">🕒 ${ord.time}</small>
+        `;
+        container.appendChild(itemBox);
+      });
+    } else {
+      container.innerHTML = `<div style="text-align: center; color: #777; padding: 15px; font-size: 13px;">Walang nakatakdang order sa araw na ito.</div>`;
+    }
+
+    document.getElementById('day-orders-modal').classList.remove('hidden');
+  }
+
+  function closeDayModal() {
+    document.getElementById('day-orders-modal').classList.add('hidden');
+  }
+
+  window.onload = function() {
+    renderCalendar();
+  };
+
+  function toggleOrderDropdown() {
+  const submenu = document.getElementById('order-submenu');
+  submenu.classList.toggle('hidden');
+}
+
+// Awtomatikong bubukas ang dropdown kapag nasa Order pages ka
+window.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path.includes('add-order') || path.includes('pending-orders') || path.includes('confirmed-orders')) {
+    const submenu = document.getElementById('order-submenu');
+    if (submenu) submenu.classList.remove('hidden');
+  }
+});
+</script>
+
+</body>
+</html>
+

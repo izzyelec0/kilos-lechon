@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Staff Login</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+
+    body {
+      background-color: var(--light-bg);
+      color: var(--dark-brown);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--white);
+      max-width: 440px;
+      width: 100%;
+      padding: 35px;
+      border-radius: 16px;
+      border: 3px solid var(--dark-brown);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      font-size: 26px;
+      color: var(--dark-brown);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    p.subtitle {
+      font-size: 15px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 16px;
+      border: 2px solid var(--dark-brown);
+      border-radius: 8px;
+      outline: none;
+      background: #fff;
+    }
+
+    .form-group input:focus {
+      border-color: var(--tangerine);
+    }
+
+    .btn-submit {
+      width: 100%;
+      background-color: var(--tangerine);
+      color: var(--white);
+      padding: 14px;
+      font-size: 17px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+      background-color: #c96a00;
+    }
+
+    .flash-messages {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      text-align: center;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--brunswick-green);
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <h2>🔐 Staff & Owner Login</h2>
+    <p class="subtitle">Lapitan's Lechon Internal System</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-messages" style="background: {% if category == 'success' %}#d4edda{% else %}#d1ecf1{% endif %}; color: {% if category == 'success' %}#155724{% else %}#0c5460{% endif %}; border: 1px solid {% if category == 'success' %}#c3e6cb{% else %}#bee5eb{% endif %};">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('login') }}" method="POST">
+      <div class="form-group">
+        <label>Username:</label>
+        <input type="text" name="username" placeholder="e.g. lapitan_admin" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password:</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn-submit">Continue to OTP Verification</button>
+    </form>
+
+    <a href="{{ url_for('index') }}" class="back-link">← Back to Landing Page</a>
+  </div>
+
+</body>
+</html>

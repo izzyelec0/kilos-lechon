@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Lapitan's Lechon Management System</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    
+    body {
+      background-color: var(--light-bg);
+      color: var(--dark-brown);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .hero-container {
+      background: var(--white);
+      max-width: 650px;
+      width: 100%;
+      padding: 40px;
+      border-radius: 16px;
+      border: 3px solid var(--dark-brown);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background-color: var(--vanilla);
+      color: var(--dark-brown);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      font-size: 38px;
+      color: var(--dark-brown);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    h1 span {
+      color: var(--tangerine);
+    }
+
+    p {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 35px;
+      text-align: left;
+    }
+
+    .feature-item {
+      background: var(--light-bg);
+      padding: 12px 15px;
+      border-radius: 8px;
+      border-left: 4px solid var(--brunswick-green);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--dark-brown);
+    }
+
+    .btn-login {
+      display: inline-block;
+      background-color: var(--tangerine);
+      color: var(--white);
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: 0.2s ease;
+      box-shadow: 0 4px 12px rgba(235, 125, 0, 0.3);
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .btn-login:hover {
+      background-color: #c96a00;
+      transform: translateY(-2px);
+    }
+
+    .footer-note {
+      margin-top: 25px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero-container">
+    <div class="hero-badge">Lapitan's Lechon • Los Baños, Laguna</div>
+    <h1>Welcome to <span>KilosLechón</span></h1>
+    <p>An internal management system designed for digital ordering, live livestock inventory tracking, customer profiling, and sales analytics.</p>
+
+    <div class="features-grid">
+      <div class="feature-item">🍖 Order Management (Menu & Paluto)</div>
+      <div class="feature-item">🐖 Live Pen Inventory (Native & White)</div>
+      <div class="feature-item">📊 Sales Comparison Analytics</div>
+      <div class="feature-item">🔒 Secure Admin & Super Admin Access</div>
+    </div>
+
+    <a href="{{ url_for('dashboard') }}" class="btn-login">🔑 Proceed to Staff Login</a>
+
+    <div class="footer-note">
+      Laguna University • BSIT Capstone Project
+    </div>
+  </div>
+
+</body>
+</html>

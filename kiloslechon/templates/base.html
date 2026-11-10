@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}KilosLechón - Booking Calendar View{% endblock %}
+
+{% block extra_head %}
+<style>
+  .calendar-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid #ddd;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cal-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: #f1efe0;
+    padding: 10px 15px;
+    border-radius: 8px;
+  }
+  .cal-nav-btn {
+    background: var(--vanilla);
+    border: 1px solid var(--dark-brown);
+    padding: 6px 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .cal-nav-btn:hover { background: var(--tangerine); color: white; border-color: var(--tangerine); }
+
+  /* FIXED CONTAINER GRID PARA HINDI NAG-AADJUST */
+  .cal-grid-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    text-align: center;
+    flex: 1;
+  }
+  .cal-header {
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--white);
+    background: var(--brunswick-green);
+    padding: 10px;
+    border-radius: 6px;
+  }
+  .cal-cell {
+    background: var(--light-bg);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 85px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    font-size: 14px;
+  }
+  .cal-cell.has-event {
+    background: #fff3cd;
+    border-color: var(--tangerine);
+  }
+  .toggle-group { display: flex; gap: 8px; }
+  .btn-toggle { padding: 8px 16px; font-weight: bold; border: 2px solid var(--dark-brown); background: white; border-radius: 6px; cursor: pointer; }
+  .btn-toggle.active { background: var(--brunswick-green); color: white; border-color: var(--brunswick-green); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+  <div>
+    <h1>Master Reservation Calendar</h1>
+    <p>Lapitan's Lechon • Live Booking Monitoring</p>
+  </div>
+  <div class="toggle-group">
+    <button class="btn-toggle active" id="monthBtn" onclick="switchView('month')">Month View</button>
+    <button class="btn-toggle" id="weekBtn" onclick="switchView('week')">Week View</button>
+  </div>
+</div>
+
+<div class="calendar-card">
+  <div class="cal-nav-bar">
+    <button class="cal-nav-btn" onclick="changePage(-1)">◄ Prev</button>
+    <strong id="calendar-title" style="font-size: 18px; color: var(--dark-brown);">November 2026</strong>
+    <button class="cal-nav-btn" onclick="changePage(1)">Next ►</button>
+  </div>
+
+  <div class="cal-grid-wrapper">
+    <div class="cal-grid" id="calendarGridContainer">
+      <!-- Dinamikong i-render ng JS para laging pantay ang container -->
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentView = 'month';
+  let currDate = new Date(2026, 10, 7);
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('monthBtn').classList.toggle('active', view === 'month');
+    document.getElementById('weekBtn').classList.toggle('active', view === 'week');
+    renderCalendarView();
+  }
+
+  function changePage(delta) {
+    if (currentView === 'month') {
+      currDate.setMonth(currDate.getMonth() + delta);
+    } else {
+      currDate.setDate(currDate.getDate() + (delta * 7));
+    }
+    renderCalendarView();
+  }
+
+  function renderCalendarView() {
+    const container = document.getElementById('calendarGridContainer');
+    const title = document.getElementById('calendar-title');
+    container.innerHTML = '';
+
+    const year = currDate.getFullYear();
+    const month = currDate.getMonth();
+    title.innerText = `${monthNames[month]} ${year}`;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    days.forEach(d => {
+      const h = document.createElement('div');
+      h.className = 'cal-header';
+      h.innerText = d;
+      container.appendChild(h);
+    });
+
+    if (currentView === 'month') {
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell';
+        empty.style.opacity = '0.3';
+        container.appendChild(empty);
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        cell.innerHTML = `<strong>${day}</strong>`;
+        
+        // Halimbawa ng event sa Nov 7 at Nov 15
+        if (month === 10 && day === 7) {
+          cell.classList.add('has-event');
+          cell.innerHTML += `<br><small style="color:var(--tangerine); font-weight:bold;">🐖 Juan (12 PM)</small>`;
+        } else if (month === 10 && day === 15) {
+          cell.classList.add('has-event');
+          cell.innerHTML += `<br><small style="color:var(--tangerine); font-weight:bold;">🔥 Maria (4 PM)</small>`;
+        }
+
+        container.appendChild(cell);
+      }
+    } else {
+      // Week View Rendering
+      let startOfWeek = new Date(currDate);
+      startOfWeek.setDate(currDate.getDate() - currDate.getDay());
+
+      for (let i = 0; i < 7; i++) {
+        let d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        cell.style.minHeight = '320px'; // Consistent height para sa week view
+        cell.innerHTML = `<strong>${monthNames[d.getMonth()].slice(0,3)} ${d.getDate()}</strong>`;
+        
+        if (d.getDate() === 7 && d.getMonth() === 10) {
+          cell.classList.add('has-event');
+          cell.innerHTML += `<br><br><span style="background:var(--tangerine); color:white; padding:4px 6px; border-radius:4px; font-size:12px;">Juan - 12:00 PM</span>`;
+        }
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  window.onload = renderCalendarView;
+</script>
+{% endblock %}

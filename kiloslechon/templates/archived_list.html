@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Google Drive Archive & Folders</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F8F9FA;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+      --drive-red: #D93025;
+      --drive-red-bg: #FCE8E6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); color: var(--dark-brown); font-size: 14px; min-height: 100vh; display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .hidden { display: none !important; }
+
+    .wrapper { display: flex; width: 100%; min-height: 100vh; position: relative; }
+
+    /* SIDEBAR */
+    .sidebar { width: 250px; background-color: var(--dark-brown); color: var(--white); padding: 20px 15px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; }
+    .sidebar h2 { color: var(--tangerine); font-size: 22px; margin-bottom: 25px; text-align: center; font-weight: bold; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; margin-bottom: 8px; background: transparent; color: var(--vanilla); border-radius: 12px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.2s ease; }
+    .nav-btn:hover, .nav-btn.active { background-color: var(--tangerine); color: var(--white); }
+    .logout-link { margin-top: auto; background-color: var(--danger); color: white; justify-content: center; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; margin-left: 250px; padding: 25px; overflow-y: auto; min-height: 100vh; width: calc(100% - 250px); }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--vanilla); padding: 16px 22px; border-radius: 14px; margin-bottom: 20px; border: 1px solid #e0d68f; flex-wrap: wrap; gap: 12px; }
+    .top-bar h1 { font-size: 24px; color: var(--dark-brown); margin-bottom: 2px; }
+    .top-bar p { color: #555; font-size: 13px; }
+
+    /* SEARCH BAR */
+    .search-card { background: var(--white); padding: 14px 18px; border-radius: 12px; border: 1px solid #e2e2e2; margin-bottom: 22px; display: flex; gap: 12px; align-items: center; }
+    .search-card input { width: 100%; padding: 10px 14px; font-size: 13px; border: 1.5px solid #333; border-radius: 8px; outline: none; }
+
+    /* FOLDERS GRID LAYOUT */
+    .section-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #444; display: flex; align-items: center; gap: 8px; }
+    .folders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 25px; }
+    
+    .folder-card { background: #fff; border: 1.5px solid #e0d68f; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .folder-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); border-color: var(--tangerine); }
+    
+    /* PULANG FOLDER STYLING */
+    .folder-card.red-folder { background: var(--drive-red-bg); border-color: var(--drive-red); }
+    .folder-card.red-folder h4 { color: var(--drive-red); }
+    
+    .folder-icon { font-size: 28px; }
+    .folder-info h4 { font-size: 13px; color: var(--dark-brown); font-weight: bold; }
+    .folder-info span { font-size: 11px; color: #666; }
+
+    /* ARCHIVED FILES GRID VIEW */
+    .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .file-card { background: var(--white); border: 1.5px solid #e2e2e2; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .file-card:hover { border-color: var(--tangerine); box-shadow: 0 6px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    
+    .file-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .file-icon { font-size: 24px; background: #fff0f0; padding: 8px; border-radius: 8px; }
+    .file-date { font-size: 11px; color: var(--danger); font-weight: bold; }
+
+    .file-body { margin-bottom: 14px; }
+    .file-title { font-size: 15px; font-weight: bold; color: var(--dark-brown); margin-bottom: 4px; }
+    .file-sub { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .file-reason { font-size: 11px; background: #fdf2f2; border: 1px dashed var(--danger); padding: 6px 8px; border-radius: 6px; color: var(--danger); margin-top: 6px; }
+
+    .file-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 10px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; text-decoration: none; }
+    .btn-view { background: var(--brunswick-green); }
+    .btn-restore { background: var(--tangerine); }
+    .btn-secondary { background: #6c757d; }
+
+    /* MODAL STYLING */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 450px; padding: 24px; border-radius: 16px; border: 3px solid var(--brunswick-green); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .receipt-box { background: #fffef9; border: 1px dashed #cca300; padding: 16px; border-radius: 10px; margin: 12px 0; font-family: 'Courier New', Courier, monospace; }
+    .receipt-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: 55px; flex-direction: row; justify-content: space-around; align-items: center; position: fixed; bottom: 0; top: auto; left: 0; padding: 4px; background-color: var(--dark-brown); box-shadow: 0 -4px 10px rgba(0,0,0,0.15); }
+      .sidebar h2, .nav-btn span.text, .logout-link { display: none; }
+      .nav-btn { justify-content: center; padding: 6px; font-size: 20px; width: auto; margin-bottom: 0; }
+      .main-content { margin-left: 0; width: 100%; padding: 12px 12px 80px 12px; }
+    }
+
+    /* ORDER DROPDOWN SUBMENU */
+.nav-dropdown-container { 
+  width: 100%; 
+  margin-bottom: 8px; 
+}
+
+.dropdown-toggle-btn { 
+  width: 100%; 
+}
+
+.submenu-container { 
+  display: flex; 
+  flex-direction: column; 
+  padding-left: 20px; 
+  margin-top: 4px; 
+  gap: 4px; 
+}
+
+.submenu-container.hidden { 
+  display: none !important; 
+}
+
+.sub-nav-btn { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: rgba(255,255,255,0.05); 
+  color: var(--vanilla); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  transition: 0.2s ease; 
+}
+
+.sub-nav-btn:hover, .sub-nav-btn.active { 
+  background-color: var(--tangerine); 
+  color: var(--white); 
+}
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- SIDEBAR -->
+ <aside class="sidebar">
+    <h2>KilosLechón</h2>
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" title="Dashboard"><span>📋</span><span class="text">Dashboard</span></a>
+    
+    <!-- ORDER DROPDOWN -->
+    <div class="nav-dropdown-container">
+      <button type="button" class="nav-btn dropdown-toggle-btn" onclick="toggleOrderDropdown()">
+        <span>📦</span><span class="text">Order ▾</span>
+      </button>
+      <div id="order-submenu" class="submenu-container hidden">
+        <a href="{{ url_for('add_order') }}" class="sub-nav-btn">➕ Add</a>
+        <a href="{{ url_for('pending_orders') }}" class="sub-nav-btn">⏳ Pending</a>
+        <a href="{{ url_for('confirmed_orders') }}" class="sub-nav-btn">✅ Confirmed</a>
+      </div>
+    </div>
+
+    <a href="{{ url_for('customers') }}" class="nav-btn" title="Customers"><span>👥</span><span class="text">Customers</span></a>
+    <a href="{{ url_for('calendar_view') }}" class="nav-btn" title="Calendar"><span>📅</span><span class="text">Calendar</span></a>
+    <a href="{{ url_for('inventory') }}" class="nav-btn" title="Inventory"><span>🐖</span><span class="text">Inventory</span></a>
+    <a href="{{ url_for('sales') }}" class="nav-btn active" title="Sales"><span>📊</span><span class="text">Sales</span></a>
+    <a href="{{ url_for('archive') }}" class="nav-btn" title="Archive"><span>🗄️</span><span class="text">Archive</span></a>
+    <a href="{{ url_for('logout') }}" class="nav-btn logout-link" title="Logout"><span>🚪</span><span class="text">Logout</span></a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content fade-in">
+    <div class="top-bar">
+      <div>
+        <h1>Drive Folders & Archive</h1>
+        <p>Awtomatikong naka-folder at may Deletion Date tracking</p>
+      </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 13px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- SEARCH BAR -->
+    <div class="search-card">
+      <input type="text" id="archive-search" placeholder="🔍 Hanapin ang customer name, order ID, o petsa..." onkeyup="filterArchiveFiles()">
+    </div>
+
+    <!-- GOOGLE DRIVE FOLDERS SECTION -->
+    <div class="section-title">📁 Drive Folders System</div>
+    <div class="folders-grid">
+      <!-- 1. PULANG FOLDER (DELETED ITEMS) -->
+      <div class="folder-card red-folder" onclick="switchFolderView('DELETED')">
+        <span class="folder-icon">🗑️</span>
+        <div class="folder-info">
+          <h4>Deleted Folder</h4>
+          <span>Trash & Cancelled Items</span>
+        </div>
+      </div>
+
+      <!-- 2. REPORTS FOLDER -->
+      <div class="folder-card" onclick="switchFolderView('REPORTS')">
+        <span class="folder-icon">📊</span>
+        <div class="folder-info">
+          <h4>Reports Folder</h4>
+          <span>Sales & Analytics Logs</span>
+        </div>
+      </div>
+
+      <!-- 3. RECEIPTS FOLDER -->
+      <div class="folder-card" onclick="switchFolderView('RECEIPTS')">
+        <span class="folder-icon">🧾</span>
+        <div class="folder-info">
+          <h4>Receipts Folder</h4>
+          <span>Archived Receipts</span>
+        </div>
+      </div>
+
+      <!-- 4. CUSTOMER FOLDER -->
+      <div class="folder-card" onclick="switchFolderView('CUSTOMERS')">
+        <span class="folder-icon">👥</span>
+        <div class="folder-info">
+          <h4>Customer Folder</h4>
+          <span>Profiles & Deleted Cust.</span>
+        </div>
+      </div>
+
+      <!-- 5. MONTH FOLDER -->
+      <div class="folder-card" onclick="switchFolderView('MONTHS')">
+        <span class="folder-icon">📅</span>
+        <div class="folder-info">
+          <h4>Month Folders</h4>
+          <span>By Scheduled Date</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARCHIVED & DELETED FILES DISPLAY -->
+    <div class="section-title" id="folder-view-title">📄 Active Folder Items</div>
+    <div class="files-grid" id="archived-files-container">
+      
+      <!-- ORDERS FILES -->
+      {% for ord in archived_orders %}
+      <div class="file-card archive-item-node" 
+           data-foldertype="{{ 'DELETED' if ord.order_status == 'Deleted' else 'RECEIPTS' }}"
+           data-searchtext="{{ ord.id }} {{ ord.customer_name | lower }} {{ (ord.cancel_reason or '') | lower }} {{ ord.item_type | lower }} {{ ord.formatted_deleted_date }}">
+        <div>
+          <div class="file-header">
+            <span class="file-icon">🧾</span>
+            <span class="file-date">📅 {{ ord.formatted_deleted_date }}</span>
+          </div>
+
+          <div class="file-body">
+            <div class="file-title">Order #{{ ord.id }} - {{ ord.customer_name }}</div>
+            <div class="file-sub">📦 {{ ord.item_type }} | Status: <strong>{{ ord.order_status }}</strong></div>
+            <div style="font-size: 13px; font-weight: bold; color: var(--brunswick-green);">
+              ₱{{ "{:,.2f}".format(ord.total_amount) }}
+            </div>
+
+            {% if ord.cancel_reason %}
+            <div class="file-reason">
+              ⚠️ Dahilan: {{ ord.cancel_reason }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="file-actions">
+          <button type="button" class="btn btn-view" onclick="openReceiptModal('{{ ord.id }}', '{{ ord.customer_name }}', '{{ ord.customer_contact }}', '{{ ord.item_type }}', '{{ ord.details or 'N/A' }}', '{{ ord.fulfillment_method }}', '{{ ord.schedule_datetime }}', '{{ ord.total_amount }}', '{{ ord.payment_status }}', '{{ ord.cancel_reason or 'N/A' }}', '{{ ord.formatted_deleted_date }}')">🔍 Resibo</button>
+          
+          <form action="{{ url_for('restore_order_route', order_id=ord.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-restore">🔄 Restore</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- DELETED CUSTOMERS FILES -->
+      {% for cust in deleted_customers %}
+      <div class="file-card archive-item-node" 
+           data-foldertype="CUSTOMERS"
+           data-searchtext="customer {{ cust.name | lower }} {{ cust.contact }} {{ cust.formatted_deleted_date }}">
+        <div>
+          <div class="file-header">
+            <span class="file-icon" style="background: #e3f2fd;">👤</span>
+            <span class="file-date">🗑️ Deleted: {{ cust.formatted_deleted_date }}</span>
+          </div>
+
+          <div class="file-body">
+            <div class="file-title">Customer: {{ cust.name }}</div>
+            <div class="file-sub">📞 {{ cust.contact }} | 📍 {{ cust.address or 'Los Baños' }}</div>
+            <div class="file-reason">
+              ⚠️ Deleted Customer Record
+            </div>
+          </div>
+        </div>
+
+        <div class="file-actions">
+          <form action="{{ url_for('restore_customer_route', customer_id=cust.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-restore">🔄 Restore Profile</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </main>
+</div>
+
+<!-- DIGITAL RECEIPT MODAL -->
+<div id="receipt-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--brunswick-green); font-size: 17px; text-align: center;">🧾 KilosLechón Official Receipt</h3>
+    <p style="text-align: center; font-size: 11px; color: #666; margin-bottom: 10px;">Los Baños, Laguna | Drive Copy</p>
+
+    <div class="receipt-box">
+      <div class="receipt-row"><span><strong>Order Reference:</strong></span><span id="rec-id"></span></div>
+      <div class="receipt-row"><span><strong>Customer Name:</strong></span><span id="rec-name"></span></div>
+      <div class="receipt-row"><span><strong>Contact #:</strong></span><span id="rec-contact"></span></div>
+      <hr style="border-top: 1px dashed #ccc; margin: 8px 0;">
+      <div class="receipt-row"><span><strong>Item:</strong></span><span id="rec-item"></span></div>
+      <div class="receipt-row"><span><strong>Fulfillment:</strong></span><span id="rec-fulfillment"></span></div>
+      <div class="receipt-row"><span><strong>Schedule:</strong></span><span id="rec-schedule"></span></div>
+      <hr style="border-top: 1px dashed #ccc; margin: 8px 0;">
+      <div class="receipt-row" style="font-size: 14px; color: var(--brunswick-green);">
+        <span><strong>TOTAL AMOUNT:</strong></span><strong id="rec-total"></strong>
+      </div>
+      <div class="receipt-row"><span><strong>Payment Status:</strong></span><span id="rec-paystatus"></span></div>
+      <hr style="border-top: 1px dashed #ccc; margin: 8px 0;">
+      <div style="font-size: 11px; color: var(--danger);">
+        <strong>Deletion/Archive Date:</strong> <span id="rec-archivedate"></span><br>
+        <strong>Notes / Reason:</strong> <span id="rec-reason"></span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button type="button" class="btn btn-secondary" onclick="closeReceiptModal()">Isara</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let activeFolder = 'ALL';
+
+  function switchFolderView(folderName) {
+    activeFolder = folderName;
+    document.getElementById('folder-view-title').innerText = `📄 Folder Content: ${folderName}`;
+    filterArchiveFiles();
+  }
+
+  function filterArchiveFiles() {
+    const searchVal = document.getElementById('archive-search').value.toLowerCase().trim();
+    const fileCards = document.querySelectorAll('.archive-item-node');
+
+    fileCards.forEach(card => {
+      const text = card.getAttribute('data-searchtext');
+      const folderType = card.getAttribute('data-foldertype');
+
+      const matchesSearch = text.includes(searchVal);
+      const matchesFolder = (activeFolder === 'ALL') || (folderType === activeFolder) || (activeFolder === 'DELETED' && folderType === 'DELETED');
+
+      if (matchesSearch && matchesFolder) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  function openReceiptModal(id, name, contact, item, details, fulfillment, schedule, total, payStatus, reason, archiveDate) {
+    document.getElementById('rec-id').innerText = '#' + id;
+    document.getElementById('rec-name').innerText = name;
+    document.getElementById('rec-contact').innerText = contact;
+    document.getElementById('rec-item').innerText = item;
+    document.getElementById('rec-fulfillment').innerText = fulfillment;
+    document.getElementById('rec-schedule').innerText = schedule;
+    document.getElementById('rec-total').innerText = '₱' + parseFloat(total).toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('rec-paystatus').innerText = payStatus;
+    document.getElementById('rec-reason').innerText = reason;
+    document.getElementById('rec-archivedate').innerText = archiveDate || 'N/A';
+
+    document.getElementById('receipt-modal').classList.remove('hidden');
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receipt-modal').classList.add('hidden');
+  }
+
+  function toggleOrderDropdown() {
+  const submenu = document.getElementById('order-submenu');
+  submenu.classList.toggle('hidden');
+}
+
+// Awtomatikong bubukas ang dropdown kapag nasa Order pages ka
+window.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path.includes('add-order') || path.includes('pending-orders') || path.includes('confirmed-orders')) {
+    const submenu = document.getElementById('order-submenu');
+    if (submenu) submenu.classList.remove('hidden');
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KilosLechón - Official Receipt #{{ order.id }}</title>
+  <style>
+    body { font-family: 'Courier New', Courier, monospace; background: #fff; color: #000; font-size: 14px; padding: 20px; }
+    .receipt-container { max-width: 380px; margin: 0 auto; border: 1px dashed #333; padding: 20px; background: #fff; }
+    .text-center { text-align: center; }
+    .bold { font-weight: bold; }
+    .divider { border-top: 1px dashed #333; margin: 10px 0; }
+    .flex-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .btn-print { display: block; width: 100%; background: #2E2910; color: #fff; padding: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: 15px; border-radius: 4px; }
+    
+    @media print {
+      body { padding: 0; }
+      .btn-print, .back-link { display: none !important; }
+      .receipt-container { border: none; padding: 0; width: 100%; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="receipt-container">
+  <div class="text-center">
+    <h2 style="margin-bottom: 2px;">KILOSLECHÓN</h2>
+    <p style="font-size: 12px; margin: 0;">Lapitan's Lechon • Los Baños, Laguna</p>
+    <p style="font-size: 11px; color: #555;">Official Transaction Receipt</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <div class="flex-row"><span>Order ID:</span> <span class="bold">#{{ order.id }}</span></div>
+    <div class="flex-row"><span>Date:</span> <span>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'N/A' }}</span></div>
+    <div class="flex-row"><span>Customer:</span> <span class="bold">{{ order.customer_name }}</span></div>
+    <div class="flex-row"><span>Contact:</span> <span>{{ order.customer_contact }}</span></div>
+    <div class="flex-row"><span>Fulfillment:</span> <span>{{ order.fulfillment_method }}</span></div>
+    <div class="flex-row"><span>Schedule:</span> <span class="bold">{{ order.schedule_datetime }}</span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="bold" style="margin-bottom: 5px;">ITEMS & SERVICES:</div>
+  <div style="margin-bottom: 10px;">
+    <div class="flex-row"><span>{{ order.item_type }}</span></div>
+    <div style="font-size: 12px; color: #444; padding-left: 10px;">Details: {{ order.details }}</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="flex-row"><span>Payment Status:</span> <span class="bold">{{ order.payment_status }}</span></div>
+  <div class="flex-row" style="font-size: 16px; margin-top: 8px;">
+    <span class="bold">TOTAL AMOUNT:</span> 
+    <span class="bold">₱{{ "{:,.2f}".format(order.total_amount) }}</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="text-center" style="font-size: 12px; margin-top: 15px;">
+    <p>Maraming salamat sa pagtangkilik!</p>
+    <p style="font-size: 10px; color: #777;">System Generated Receipt</p>
+  </div>
+
+  <button class="btn-print" onclick="window.print()">🖨️ Print Receipt</button>
+  <div class="text-center" style="margin-top: 10px;">
+    <a href="{{ url_for('pending_orders') }}" class="back-link" style="font-size: 13px; color: #2E2910; text-decoration: underline;">← Bumalik sa Queue</a>
+  </div>
+</div>
+
+</body>
+</html>

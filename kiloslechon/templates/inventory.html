@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Pig & Product Inventory</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); color: var(--dark-brown); font-size: 14px; min-height: 100vh; display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .hidden { display: none !important; }
+
+    .wrapper { display: flex; width: 100%; min-height: 100vh; position: relative; }
+
+    /* SIDEBAR */
+    .sidebar { width: 250px; background-color: var(--dark-brown); color: var(--white); padding: 20px 15px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; }
+    .sidebar h2 { color: var(--tangerine); font-size: 22px; margin-bottom: 25px; text-align: center; font-weight: bold; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; margin-bottom: 8px; background: transparent; color: var(--vanilla); border-radius: 12px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.2s ease; }
+    .nav-btn:hover, .nav-btn.active { background-color: var(--tangerine); color: var(--white); }
+    .logout-link { margin-top: auto; background-color: var(--danger); color: white; justify-content: center; }
+/* ORDER DROPDOWN SUBMENU */
+.nav-dropdown-container { 
+  width: 100%; 
+  margin-bottom: 8px; 
+}
+
+.dropdown-toggle-btn { 
+  width: 100%; 
+}
+
+.submenu-container { 
+  display: flex; 
+  flex-direction: column; 
+  padding-left: 20px; 
+  margin-top: 4px; 
+  gap: 4px; 
+}
+
+.submenu-container.hidden { 
+  display: none !important; 
+}
+
+.sub-nav-btn { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: rgba(255,255,255,0.05); 
+  color: var(--vanilla); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  transition: 0.2s ease; 
+}
+
+.sub-nav-btn:hover, .sub-nav-btn.active { 
+  background-color: var(--tangerine); 
+  color: var(--white); 
+}
+    /* MAIN CONTENT */
+    .main-content { flex: 1; margin-left: 250px; padding: 25px; overflow-y: auto; min-height: 100vh; width: calc(100% - 250px); }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--vanilla); padding: 16px 22px; border-radius: 14px; margin-bottom: 20px; border: 1px solid #e0d68f; flex-wrap: wrap; gap: 12px; }
+    .top-bar h1 { font-size: 24px; color: var(--dark-brown); margin-bottom: 2px; }
+    .top-bar p { color: #555; font-size: 13px; }
+
+    /* SEARCH & FILTER BAR */
+    .filter-card { background: var(--white); padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e2e2; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .search-box { flex: 1; min-width: 200px; }
+    .search-box input { width: 100%; padding: 8px 12px; font-size: 13px; border: 1.5px solid #222; border-radius: 6px; outline: none; }
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-group select { padding: 8px 12px; font-size: 13px; border: 1.5px solid #222; border-radius: 6px; background: #fff; outline: none; font-weight: bold; }
+
+    /* VIEW TOGGLE BUTTONS */
+    .view-btn { padding: 8px 12px; font-size: 12px; font-weight: bold; border: 1.5px solid var(--brunswick-green); background: #fff; color: var(--brunswick-green); border-radius: 6px; cursor: pointer; }
+    .view-btn.active { background: var(--brunswick-green); color: white; }
+
+    /* DRIVE GRID CARDS VIEW */
+    .drive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .drive-card { background: var(--white); border: 1.5px solid #e2e2e2; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s ease; position: relative; }
+    .drive-card:hover { border-color: var(--tangerine); box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .drive-icon { font-size: 38px; text-align: center; margin-bottom: 10px; background: #fdfbf2; padding: 12px; border-radius: 10px; }
+
+    .badge-native { background: #d4edda; color: #155724; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+    .badge-white { background: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+    .badge-na { background: #e2e8f0; color: #666; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+    .badge-status { background: #e2e8f0; color: #333; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+    .badge-reserved { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+    /* TABLE VIEW */
+    .card-table { background: var(--white); padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(46, 41, 16, 0.08); border: 1px solid #eae2b7; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: var(--dark-brown); color: var(--vanilla); padding: 12px; font-weight: bold; }
+    td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; color: white; }
+    .btn-add { background: var(--tangerine); color: white; padding: 10px 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .btn-edit { background: #f0ad4e; color: #fff; }
+    .btn-remove { background: var(--danger); }
+    .btn-secondary { background: #6c757d; }
+    .btn-confirm { background: var(--brunswick-green); }
+
+    /* MODAL OVERLAY */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 480px; padding: 24px; border-radius: 14px; border: 3px solid var(--brunswick-green); max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; color: var(--dark-brown); }
+    .form-group input, .form-group select { width: 100%; padding: 10px; font-size: 13px; border: 1.5px solid #222; border-radius: 8px; outline: none; background: #fff; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: 55px; flex-direction: row; justify-content: space-around; align-items: center; position: fixed; bottom: 0; top: auto; left: 0; padding: 4px; background-color: var(--dark-brown); box-shadow: 0 -4px 10px rgba(0,0,0,0.15); }
+      .sidebar h2, .nav-btn span.text, .logout-link { display: none; }
+      .nav-btn { justify-content: center; padding: 6px; font-size: 20px; width: auto; margin-bottom: 0; }
+      .main-content { margin-left: 0; width: 100%; padding: 12px 12px 80px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- SIDEBAR -->
+ <aside class="sidebar">
+    <h2>KilosLechón</h2>
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" title="Dashboard"><span>📋</span><span class="text">Dashboard</span></a>
+    
+    <!-- ORDER DROPDOWN -->
+    <div class="nav-dropdown-container">
+      <button type="button" class="nav-btn dropdown-toggle-btn" onclick="toggleOrderDropdown()">
+        <span>📦</span><span class="text">Order ▾</span>
+      </button>
+      <div id="order-submenu" class="submenu-container hidden">
+        <a href="{{ url_for('add_order') }}" class="sub-nav-btn">➕ Add</a>
+        <a href="{{ url_for('pending_orders') }}" class="sub-nav-btn">⏳ Pending</a>
+        <a href="{{ url_for('confirmed_orders') }}" class="sub-nav-btn">✅ Confirmed</a>
+      </div>
+    </div>
+
+    <a href="{{ url_for('customers') }}" class="nav-btn" title="Customers"><span>👥</span><span class="text">Customers</span></a>
+    <a href="{{ url_for('calendar_view') }}" class="nav-btn" title="Calendar"><span>📅</span><span class="text">Calendar</span></a>
+    <a href="{{ url_for('inventory') }}" class="nav-btn active" title="Inventory"><span>🐖</span><span class="text">Inventory</span></a>
+    <a href="{{ url_for('sales') }}" class="nav-btn" title="Sales"><span>📊</span><span class="text">Sales</span></a>
+    <a href="{{ url_for('archive') }}" class="nav-btn" title="Archive"><span>🗄️</span><span class="text">Archive</span></a>
+    <a href="{{ url_for('logout') }}" class="nav-btn logout-link" title="Logout"><span>🚪</span><span class="text">Logout</span></a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content fade-in">
+    <div class="top-bar">
+      <div>
+        <h1>Pig & Product Inventory</h1>
+        <p>Pamahalaan ang live stock ng baboy, lechon belly, pig head, at mga reservation</p>
+      </div>
+      <button type="button" class="btn-add" onclick="openAddModal()">➕ Add New Item</button>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 13px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- SEARCH & FILTER BAR WITH VIEW TOGGLE -->
+    <div class="filter-card">
+      <div class="search-box">
+        <input type="text" id="inventory-search" placeholder="🔍 Search item, pen, o customer..." onkeyup="filterInventory()">
+      </div>
+      <div class="filter-group">
+        <select id="category-filter" onchange="filterInventory()">
+          <option value="ALL">All Categories</option>
+          <option value="Live Pig">Live Pig</option>
+          <option value="Parts / Processed">Parts / Processed</option>
+        </select>
+        <button class="view-btn active" id="btn-grid-view" onclick="switchInventoryView('grid')">📁 Grid Icons</button>
+        <button class="view-btn" id="btn-table-view" onclick="switchInventoryView('table')">📄 Table</button>
+      </div>
+    </div>
+
+    <!-- 1. GOOGLE DRIVE GRID ICONS VIEW -->
+    <div id="drive-grid-view" class="drive-grid">
+      {% for item in inventory %}
+      <div class="drive-card inventory-item-node" 
+           data-name="{{ item.item_name | lower }}" 
+           data-pen="{{ item.pen_number | lower }}" 
+           data-category="{{ item.category }}"
+           data-reserved="{{ (item.reserved_customer or '') | lower }}">
+        <div class="drive-icon">
+          {% if 'Belly' in item.item_name %}🥩{% elif 'Head' in item.item_name %}🐷{% else %}🐖{% endif %}
+        </div>
+        <div>
+          <strong style="font-size: 15px; display: block; margin-bottom: 2px;">{{ item.item_name }}</strong>
+          <small style="color: #666; display: block; margin-bottom: 6px;">📍 {{ item.pen_number or 'N/A' }} | ⚖️ <strong>{{ item.estimated_kilos }} kg</strong></small>
+          
+          <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+            <span class="badge-status {{ 'badge-reserved' if item.status == 'Reserved' else '' }}">
+              {{ item.status }}
+            </span>
+            {% if item.category == 'Parts / Processed' %}
+              <span class="badge-na">Parts (N/A)</span>
+            {% else %}
+              <span class="{{ 'badge-native' if item.classification == 'Native' else 'badge-white' }}">
+                {{ item.classification }}
+              </span>
+            {% endif %}
+          </div>
+
+          {% if item.status == 'Reserved' and item.reserved_customer %}
+          <div style="background: #fff8e1; border: 1px dashed #ffe082; padding: 6px 8px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; color: #795548;">
+            👤 <strong>Reserved for:</strong> {{ item.reserved_customer }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 6px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 8px; margin-top: 4px;">
+          <button type="button" class="btn btn-edit" onclick="openEditModal('{{ item.id }}', '{{ item.item_name }}', '{{ item.category }}', '{{ item.classification }}', '{{ item.estimated_kilos }}', '{{ item.pen_number }}', '{{ item.status }}', '{{ item.reserved_customer or '' }}')">✏️ Edit</button>
+          <button type="button" class="btn btn-remove" onclick="openDeleteModal('{{ item.id }}', '{{ item.item_name }}')">🗑️ Delete</button>
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column: 1/-1; text-align: center; color: #777; padding: 30px; background: white; border-radius: 10px;">Walang nakitang item sa inventory.</div>
+      {% endfor %}
+    </div>
+
+    <!-- 2. TABLE VIEW (HIDDEN BY DEFAULT) -->
+    <div id="table-view" class="card-table hidden">
+      <table>
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Item & Location</th>
+            <th>Category</th>
+            <th>Classification</th>
+            <th>Est. Kilos</th>
+            <th>Status / Reserved For</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in inventory %}
+          <tr class="inventory-table-node" 
+              data-name="{{ item.item_name | lower }}" 
+              data-pen="{{ item.pen_number | lower }}" 
+              data-category="{{ item.category }}"
+              data-reserved="{{ (item.reserved_customer or '') | lower }}">
+            <td style="font-size: 22px; text-align: center;">
+              {% if 'Belly' in item.item_name %}🥩{% elif 'Head' in item.item_name %}🐷{% else %}🐖{% endif %}
+            </td>
+            <td>
+              <strong>{{ item.item_name }}</strong><br>
+              <small style="color: #666;">📍 {{ item.pen_number or 'N/A' }}</small>
+            </td>
+            <td>{{ item.category }}</td>
+            <td>
+              {% if item.category == 'Parts / Processed' %}
+                <span class="badge-na">N/A</span>
+              {% else %}
+                <span class="{{ 'badge-native' if item.classification == 'Native' else 'badge-white' }}">
+                  {{ item.classification }}
+                </span>
+              {% endif %}
+            </td>
+            <td><strong>{{ item.estimated_kilos }} kg</strong></td>
+            <td>
+              <span class="badge-status {{ 'badge-reserved' if item.status == 'Reserved' else '' }}">{{ item.status }}</span>
+              {% if item.status == 'Reserved' and item.reserved_customer %}
+                <br><small style="color: #795548;">👤 {{ item.reserved_customer }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-edit" onclick="openEditModal('{{ item.id }}', '{{ item.item_name }}', '{{ item.category }}', '{{ item.classification }}', '{{ item.estimated_kilos }}', '{{ item.pen_number }}', '{{ item.status }}', '{{ item.reserved_customer or '' }}')">✏️ Edit</button>
+                <button type="button" class="btn btn-remove" onclick="openDeleteModal('{{ item.id }}', '{{ item.item_name }}')">🗑️ Delete</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- ADD INVENTORY MODAL -->
+<div id="add-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--brunswick-green); margin-bottom: 4px; font-size: 18px;">➕ Add Inventory Item</h3>
+    <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Pumili ng item at punan ang mga detalye.</p>
+
+    <form action="{{ url_for('add_inventory_item') }}" method="POST">
+      <div class="form-group">
+        <label>Item Name:</label>
+        <select name="item_name" required>
+          <option value="" disabled selected>-- Pumili ng Item --</option>
+          <option value="Live Pig">Live Pig (Alagang Baboy)</option>
+          <option value="Lechon Belly Roll">Lechon Belly Roll</option>
+          <option value="Pig Head">Pig Head (Ulo ng Baboy)</option>
+          <option value="Lechon Parts / Other">Iba pang Parts / Processed</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category:</label>
+          <select id="add-category" name="category" onchange="toggleClassificationField('add')">
+            <option value="Live Pig">Live Pig</option>
+            <option value="Parts / Processed">Parts / Processed</option>
+          </select>
+        </div>
+        <div class="form-group" id="add-classification-group">
+          <label>Classification:</label>
+          <select id="add-classification" name="classification">
+            <option value="Native">Native Pig</option>
+            <option value="White Commercial">White Commercial</option>
+            <option value="Hybrid">Hybrid Crossbreed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estimated Kilos (kg):</label>
+          <input type="number" step="0.1" name="estimated_kilos" placeholder="22.5" required>
+        </div>
+        <div class="form-group">
+          <label>Pen Number / Location:</label>
+          <select name="pen_number" required>
+            <option value="" disabled selected>-- Pumili ng Pen --</option>
+            <option value="Pen #1">Pen #1</option>
+            <option value="Pen #2">Pen #2</option>
+            <option value="Pen #3">Pen #3</option>
+            <option value="Pen #4">Pen #4</option>
+            <option value="Pen #5">Pen #5</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Status:</label>
+        <select id="add-status" name="status" onchange="toggleReservedCustomerField('add')">
+          <option value="Available">Available / Ready</option>
+          <option value="Reserved">Reserved</option>
+          <option value="Processing">Processing</option>
+        </select>
+      </div>
+
+      <!-- DYNAMIC RESERVED CUSTOMER FIELD -->
+      <div class="form-group hidden" id="add-reserved-group">
+        <label style="color: var(--tangerine);">👤 Reserved For (Pangalan ng Customer / Order #):</label>
+        <input type="text" id="add-reserved-customer" name="reserved_customer" placeholder="e.g., Juan Dela Cruz - Order #102">
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">
+        <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Kanselahin</button>
+        <button type="submit" class="btn btn-confirm">💾 I-save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT INVENTORY MODAL -->
+<div id="edit-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--dark-brown); margin-bottom: 4px; font-size: 18px;">✏️ Edit Inventory Item #<span id="edit-item-id-title"></span></h3>
+    <p style="font-size: 12px; color: #666; margin-bottom: 15px;">I-update ang detalye ng item.</p>
+
+    <form id="edit-form" method="POST">
+      <div class="form-group">
+        <label>Item Name:</label>
+        <select id="edit-item-name" name="item_name" required>
+          <option value="Live Pig">Live Pig (Alagang Baboy)</option>
+          <option value="Lechon Belly Roll">Lechon Belly Roll</option>
+          <option value="Pig Head">Pig Head (Ulo ng Baboy)</option>
+          <option value="Lechon Parts / Other">Iba pang Parts / Processed</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category:</label>
+          <select id="edit-category" name="category" onchange="toggleClassificationField('edit')">
+            <option value="Live Pig">Live Pig</option>
+            <option value="Parts / Processed">Parts / Processed</option>
+          </select>
+        </div>
+        <div class="form-group" id="edit-classification-group">
+          <label>Classification:</label>
+          <select id="edit-classification" name="classification">
+            <option value="Native">Native Pig</option>
+            <option value="White Commercial">White Commercial</option>
+            <option value="Hybrid">Hybrid Crossbreed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estimated Kilos (kg):</label>
+          <input type="number" step="0.1" id="edit-kilos" name="estimated_kilos" required>
+        </div>
+        <div class="form-group">
+          <label>Pen Number:</label>
+          <select id="edit-pen" name="pen_number" required>
+            <option value="Pen #1">Pen #1</option>
+            <option value="Pen #2">Pen #2</option>
+            <option value="Pen #3">Pen #3</option>
+            <option value="Pen #4">Pen #4</option>
+            <option value="Pen #5">Pen #5</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Status:</label>
+        <select id="edit-status" name="status" onchange="toggleReservedCustomerField('edit')">
+          <option value="Available">Available / Ready</option>
+          <option value="Reserved">Reserved</option>
+          <option value="Processing">Processing</option>
+        </select>
+      </div>
+
+      <!-- DYNAMIC RESERVED CUSTOMER FIELD FOR EDIT -->
+      <div class="form-group hidden" id="edit-reserved-group">
+        <label style="color: var(--tangerine);">👤 Reserved For (Pangalan ng Customer / Order #):</label>
+        <input type="text" id="edit-reserved-customer" name="reserved_customer" placeholder="e.g., Juan Dela Cruz - Order #102">
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Kanselahin</button>
+        <button type="submit" class="btn btn-confirm">💾 I-save ang Pagbabago</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="delete-modal" class="modal-overlay hidden">
+  <div class="modal-card" style="border-color: var(--danger);">
+    <h3 style="color: var(--danger); margin-bottom: 8px; font-size: 16px;">⚠️ Kumpirmahin ang Pag-delete</h3>
+    <p id="delete-text" style="font-size: 13px; color: #444; margin-bottom: 20px;">
+      Sigurado ka ba na gusto mong tanggalin ang item na ito sa inventory?
+    </p>
+
+    <form id="delete-form" method="POST">
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Kanselahin</button>
+        <button type="submit" class="btn btn-remove">Oo, Tanggalin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function switchInventoryView(viewMode) {
+    const gridEl = document.getElementById('drive-grid-view');
+    const tableEl = document.getElementById('table-view');
+    const btnGrid = document.getElementById('btn-grid-view');
+    const btnTable = document.getElementById('btn-table-view');
+
+    if (viewMode === 'grid') {
+      gridEl.classList.remove('hidden');
+      tableEl.classList.add('hidden');
+      btnGrid.classList.add('active');
+      btnTable.classList.remove('active');
+    } else {
+      gridEl.classList.add('hidden');
+      tableEl.classList.remove('hidden');
+      btnTable.classList.add('active');
+      btnGrid.classList.remove('active');
+    }
+  }
+
+  function filterInventory() {
+    const searchVal = document.getElementById('inventory-search').value.toLowerCase().trim();
+    const catVal = document.getElementById('category-filter').value;
+
+    const gridNodes = document.querySelectorAll('.inventory-item-node');
+    const tableNodes = document.querySelectorAll('.inventory-table-node');
+
+    const filterNode = node => {
+      const name = node.getAttribute('data-name');
+      const pen = node.getAttribute('data-pen');
+      const category = node.getAttribute('data-category');
+      const reserved = node.getAttribute('data-reserved');
+
+      const matchesSearch = name.includes(searchVal) || pen.includes(searchVal) || reserved.includes(searchVal);
+      const matchesCategory = (catVal === 'ALL') || (category === catVal);
+
+      if (matchesSearch && matchesCategory) {
+        node.classList.remove('hidden');
+      } else {
+        node.classList.add('hidden');
+      }
+    };
+
+    gridNodes.forEach(filterNode);
+    tableNodes.forEach(filterNode);
+  }
+
+  function toggleClassificationField(prefix) {
+    const category = document.getElementById(`${prefix}-category`).value;
+    const group = document.getElementById(`${prefix}-classification-group`);
+    const select = document.getElementById(`${prefix}-classification`);
+
+    if (category === 'Parts / Processed') {
+      group.classList.add('hidden');
+      select.value = 'N/A';
+    } else {
+      group.classList.remove('hidden');
+      if (select.value === 'N/A') select.value = 'Native';
+    }
+  }
+
+  function toggleReservedCustomerField(prefix) {
+    const status = document.getElementById(`${prefix}-status`).value;
+    const reservedGroup = document.getElementById(`${prefix}-reserved-group`);
+    
+    if (status === 'Reserved') {
+      reservedGroup.classList.remove('hidden');
+    } else {
+      reservedGroup.classList.add('hidden');
+    }
+  }
+
+  function openAddModal() {
+    toggleClassificationField('add');
+    toggleReservedCustomerField('add');
+    document.getElementById('add-modal').classList.remove('hidden');
+  }
+  function closeAddModal() {
+    document.getElementById('add-modal').classList.add('hidden');
+  }
+
+  function openEditModal(id, name, category, classification, kilos, pen, status, reservedCustomer) {
+    document.getElementById('edit-item-id-title').innerText = id;
+    document.getElementById('edit-form').action = `/inventory/edit/${id}`;
+
+    document.getElementById('edit-item-name').value = name;
+    document.getElementById('edit-category').value = category;
+    document.getElementById('edit-classification').value = classification;
+    document.getElementById('edit-kilos').value = kilos;
+    document.getElementById('edit-pen').value = pen;
+    document.getElementById('edit-status').value = status;
+    document.getElementById('edit-reserved-customer').value = reservedCustomer || '';
+
+    toggleClassificationField('edit');
+    toggleReservedCustomerField('edit');
+
+    document.getElementById('edit-modal').classList.remove('hidden');
+  }
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+  }
+
+  function openDeleteModal(id, name) {
+    document.getElementById('delete-form').action = `/inventory/delete/${id}`;
+    document.getElementById('delete-text').innerText = `Sigurado ka ba na gusto mong tanggalin ang "${name}" (ID #${id}) sa inventory?`;
+    document.getElementById('delete-modal').classList.remove('hidden');
+  }
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+  }
+
+  function toggleOrderDropdown() {
+  const submenu = document.getElementById('order-submenu');
+  submenu.classList.toggle('hidden');
+}
+
+// Awtomatikong bubukas ang dropdown kapag nasa Order pages ka
+window.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path.includes('add-order') || path.includes('pending-orders') || path.includes('confirmed-orders')) {
+    const submenu = document.getElementById('order-submenu');
+    if (submenu) submenu.classList.remove('hidden');
+  }
+});
+</script>
+
+</body>
+</html>

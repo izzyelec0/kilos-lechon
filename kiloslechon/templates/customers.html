@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - Customer Directory</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); color: var(--dark-brown); font-size: 14px; min-height: 100vh; display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .hidden { display: none !important; }
+
+    .wrapper { display: flex; width: 100%; min-height: 100vh; position: relative; }
+
+    /* SIDEBAR */
+    .sidebar { width: 250px; background-color: var(--dark-brown); color: var(--white); padding: 20px 15px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; }
+    .sidebar h2 { color: var(--tangerine); font-size: 22px; margin-bottom: 25px; text-align: center; font-weight: bold; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; margin-bottom: 8px; background: transparent; color: var(--vanilla); border-radius: 12px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.2s ease; }
+    .nav-btn:hover, .nav-btn.active { background-color: var(--tangerine); color: var(--white); }
+    .logout-link { margin-top: auto; background-color: var(--danger); color: white; justify-content: center; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; margin-left: 250px; padding: 25px; overflow-y: auto; min-height: 100vh; width: calc(100% - 250px); }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--vanilla); padding: 14px 20px; border-radius: 12px; margin-bottom: 18px; border: 1px solid #e0d68f; }
+    .top-bar h1 { font-size: 22px; color: var(--dark-brown); margin-bottom: 2px; }
+    .top-bar p { color: #555; font-size: 13px; }
+
+    /* FILTER & SEARCH BAR */
+    .filter-card { background: var(--white); padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e2e2; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .search-box { flex: 1; min-width: 200px; }
+    .search-box input { width: 100%; padding: 8px 12px; font-size: 13px; border: 1.5px solid #222; border-radius: 6px; outline: none; }
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-group select { padding: 8px 12px; font-size: 13px; border: 1.5px solid #222; border-radius: 6px; background: #fff; outline: none; font-weight: bold; }
+
+    /* SMALLER CUSTOMER CARDS GRID */
+    .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .customer-card { background: var(--white); border: 1.5px solid #e2e2e2; border-radius: 10px; padding: 14px; cursor: pointer; transition: 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+    .customer-card:hover { border-color: var(--tangerine); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    .cust-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .cust-name { font-size: 15px; font-weight: bold; color: var(--dark-brown); }
+    .cust-badge { background: #e2e8f0; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: var(--brunswick-green); }
+
+    .cust-info { font-size: 12px; color: #555; line-height: 1.4; margin-bottom: 10px; }
+    .cust-info span { display: block; }
+
+    .cust-footer { display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid #eee; padding-top: 8px; margin-top: 2px; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 5px 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; color: white; }
+    .btn-edit { background: #f0ad4e; color: #fff; }
+    .btn-remove { background: var(--danger); }
+    .btn-secondary { background: #6c757d; }
+
+    /* MODAL OVERLAY */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 540px; padding: 22px; border-radius: 12px; border: 3px solid var(--brunswick-green); max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: var(--dark-brown); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; font-size: 13px; border: 1.5px solid #222; border-radius: 6px; outline: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    th { background: var(--dark-brown); color: var(--vanilla); padding: 8px; font-weight: bold; }
+    td { padding: 8px; border-bottom: 1px solid #ddd; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: 55px; flex-direction: row; justify-content: space-around; align-items: center; position: fixed; bottom: 0; top: auto; left: 0; padding: 4px; background-color: var(--dark-brown); box-shadow: 0 -4px 10px rgba(0,0,0,0.15); }
+      .sidebar h2, .nav-btn span.text, .logout-link { display: none; }
+      .nav-btn { justify-content: center; padding: 6px; font-size: 20px; width: auto; margin-bottom: 0; }
+      .main-content { margin-left: 0; width: 100%; padding: 12px 12px 80px 12px; }
+    }
+
+    /* ORDER DROPDOWN SUBMENU */
+.nav-dropdown-container { 
+  width: 100%; 
+  margin-bottom: 8px; 
+}
+
+.dropdown-toggle-btn { 
+  width: 100%; 
+}
+
+.submenu-container { 
+  display: flex; 
+  flex-direction: column; 
+  padding-left: 20px; 
+  margin-top: 4px; 
+  gap: 4px; 
+}
+
+.submenu-container.hidden { 
+  display: none !important; 
+}
+
+.sub-nav-btn { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: rgba(255,255,255,0.05); 
+  color: var(--vanilla); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  transition: 0.2s ease; 
+}
+
+.sub-nav-btn:hover, .sub-nav-btn.active { 
+  background-color: var(--tangerine); 
+  color: var(--white); 
+}
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+  <h2>KilosLechón</h2>
+  <a href="{{ url_for('dashboard') }}" class="nav-btn" title="Dashboard"><span>📋</span><span class="text">Dashboard</span></a>
+<!-- ORDER DROPDOWN -->
+<div class="nav-dropdown-container">
+  <button type="button" class="nav-btn dropdown-toggle-btn" onclick="toggleOrderDropdown()">
+    <span>📦</span><span class="text">Order ▾</span>
+  </button>
+  <div id="order-submenu" class="submenu-container hidden">
+    <a href="{{ url_for('add_order') }}" class="sub-nav-btn">➕ Add</a>
+    <a href="{{ url_for('pending_orders') }}" class="sub-nav-btn">⏳ Pending</a>
+    <a href="{{ url_for('confirmed_orders') }}" class="sub-nav-btn">✅ Confirmed</a>
+  </div>
+</div>
+  <a href="{{ url_for('customers') }}" class="nav-btn" title="Customers"><span>👥</span><span class="text">Customers</span></a>
+  <a href="{{ url_for('calendar_view') }}" class="nav-btn" title="Calendar"><span>📅</span><span class="text">Calendar</span></a>
+  <a href="{{ url_for('inventory') }}" class="nav-btn" title="Inventory"><span>🐖</span><span class="text">Inventory</span></a>
+  <a href="{{ url_for('sales') }}" class="nav-btn" title="Sales"><span>📊</span><span class="text">Sales</span></a>
+  <a href="{{ url_for('archive') }}" class="nav-btn" title="Archive"><span>🗄️</span><span class="text">Archive</span></a>
+  <a href="{{ url_for('logout') }}" class="nav-btn logout-link" title="Logout"><span>🚪</span><span class="text">Logout</span></a>
+</aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content fade-in">
+    <div class="top-bar">
+      <div>
+        <h1>Customer Directory</h1>
+        <p>I-tap ang container ng customer para makita ang history ng order</p>
+      </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: bold; font-size: 13px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- SEARCH & FILTER BAR -->
+    <div class="filter-card">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="🔍 Search pangalan o contact..." onkeyup="filterCustomers()">
+      </div>
+      <div class="filter-group">
+        <select id="gender-filter" onchange="filterCustomers()">
+          <option value="ALL">All Genders</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <select id="place-filter" onchange="filterCustomers()">
+          <option value="ALL">All Places</option>
+          {% set places = [] %}
+          {% for cust in customers %}
+            {% if cust.address and cust.address not in places %}
+              {% set _ = places.append(cust.address) %}
+              <option value="{{ cust.address }}">{{ cust.address }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- CUSTOMER CARDS GRID -->
+    <div class="customer-grid" id="customer-grid">
+      {% for cust in customers %}
+      <div class="customer-card" 
+           data-name="{{ cust.name | lower }}" 
+           data-contact="{{ cust.contact }}" 
+           data-gender="{{ cust.gender }}" 
+           data-address="{{ cust.address or 'N/A' }}"
+           onclick='openHistoryModal({{ cust | tojson | safe }})'>
+        <div>
+          <div class="cust-header">
+            <div class="cust-name">👤 {{ cust.name }}</div>
+            <div class="cust-badge">{{ cust.total_orders }} orders</div>
+          </div>
+          <div class="cust-info">
+            <span><strong>📞:</strong> {{ cust.contact }}</span>
+            <span><strong>⚤:</strong> {{ cust.gender }}</span>
+            <span><strong>📍:</strong> {{ cust.address or 'N/A' }}</span>
+          </div>
+        </div>
+        
+        <div class="cust-footer" onclick="event.stopPropagation();">
+          <div style="display:flex; gap:5px;">
+            <button type="button" class="btn btn-edit" onclick="openEditCustomerModal('{{ cust.id }}', '{{ cust.name }}', '{{ cust.contact }}', '{{ cust.gender }}', '{{ cust.address }}')">✏️ Edit</button>
+            <button type="button" class="btn btn-remove" onclick="openDeleteCustomerModal('{{ cust.id }}', '{{ cust.name }}')">🗑️ Delete</button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column: 1/-1; text-align: center; color: #777; padding: 30px; background: white; border-radius: 10px; font-size: 13px;">
+        Walang nakitang customer sa directory.
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+
+<!-- ORDER HISTORY POPUP MODAL -->
+<div id="history-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--brunswick-green); margin-bottom: 4px; font-size: 16px;">📜 Order History: <span id="history-cust-name"></span></h3>
+    <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Listahan ng mga inorder at kabuuang nagastos.</p>
+
+    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between;">
+      <span>Total Spent: <span id="history-total-spent" style="color: var(--brunswick-green);">₱0.00</span></span>
+    </div>
+
+    <div style="max-height: 280px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item & Details</th>
+            <th>Schedule</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body"></tbody>
+      </table>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+      <button type="button" class="btn btn-secondary" onclick="closeHistoryModal()">Isara</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CUSTOMER MODAL -->
+<div id="edit-customer-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--dark-brown); margin-bottom: 4px; font-size: 16px;">✏️ Edit Customer #<span id="edit-cust-id-title"></span></h3>
+    <p style="font-size: 12px; color: #666; margin-bottom: 12px;">I-update ang impormasyon ng customer.</p>
+
+    <form id="edit-customer-form" method="POST">
+      <div class="form-group">
+        <label>Customer Name:</label>
+        <input type="text" id="edit-cust-name" name="name" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Number:</label>
+          <input type="text" id="edit-cust-contact" name="contact" required>
+        </div>
+        <div class="form-group">
+          <label>Gender:</label>
+          <select id="edit-cust-gender" name="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Address / Place:</label>
+        <textarea id="edit-cust-address" name="address" rows="2"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 15px;">
+        <button type="button" class="btn btn-secondary" onclick="closeEditCustomerModal()">Kanselahin</button>
+        <button type="submit" class="btn" style="background:var(--brunswick-green);">💾 I-save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CUSTOMER CONFIRMATION MODAL -->
+<div id="delete-customer-modal" class="modal-overlay hidden">
+  <div class="modal-card" style="border-color: var(--danger);">
+    <h3 style="color: var(--danger); margin-bottom: 6px; font-size: 16px;">⚠️ Kumpirmahin ang Pag-delete</h3>
+    <p id="delete-cust-text" style="font-size: 13px; color: #444; margin-bottom: 15px;">
+      Sigurado ka ba na gusto mong tanggalin ang customer na ito?
+    </p>
+
+    <form id="delete-cust-form" method="POST">
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteCustomerModal()">Kanselahin</button>
+        <button type="submit" class="btn btn-remove">Oo, Tanggalin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterCustomers() {
+    const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+    const genderVal = document.getElementById('gender-filter').value;
+    const placeVal = document.getElementById('place-filter').value;
+
+    const cards = document.querySelectorAll('.customer-card');
+
+    cards.forEach(card => {
+      const name = card.getAttribute('data-name');
+      const contact = card.getAttribute('data-contact');
+      const gender = card.getAttribute('data-gender');
+      const address = card.getAttribute('data-address');
+
+      const matchesSearch = name.includes(searchVal) || contact.includes(searchVal);
+      const matchesGender = (genderVal === 'ALL') || (gender === genderVal);
+      const matchesPlace = (placeVal === 'ALL') || (address === placeVal);
+
+      if (matchesSearch && matchesGender && matchesPlace) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  function openHistoryModal(customer) {
+    document.getElementById('history-cust-name').innerText = customer.name;
+    const tbody = document.getElementById('history-table-body');
+    tbody.innerHTML = '';
+
+    let totalSpent = 0;
+
+    if (customer.orders && customer.orders.length > 0) {
+      customer.orders.forEach(ord => {
+        totalSpent += parseFloat(ord.total_amount || 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${ord.id}</strong></td>
+          <td><strong>${ord.item_type}</strong><br><small>${ord.details}</small></td>
+          <td>${ord.schedule_datetime}</td>
+          <td>₱${parseFloat(ord.total_amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+          <td><span style="font-weight:bold; color:var(--brunswick-green);">${ord.order_status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="5" style="text-align: center; color: #777; padding: 15px;">Wala pang order history ang customer na ito.</td>`;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('history-total-spent').innerText = '₱' + totalSpent.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('history-modal').classList.remove('hidden');
+  }
+
+  function closeHistoryModal() {
+    document.getElementById('history-modal').classList.add('hidden');
+  }
+
+  function openEditCustomerModal(id, name, contact, gender, address) {
+    document.getElementById('edit-cust-id-title').innerText = id;
+    document.getElementById('edit-customer-form').action = `/customer/edit/${id}`;
+    
+    document.getElementById('edit-cust-name').value = name;
+    document.getElementById('edit-cust-contact').value = contact;
+    document.getElementById('edit-cust-gender').value = gender || 'Male';
+    document.getElementById('edit-cust-address').value = (address && address !== 'None') ? address : '';
+
+    document.getElementById('edit-customer-modal').classList.remove('hidden');
+  }
+
+  function closeEditCustomerModal() {
+    document.getElementById('edit-customer-modal').classList.add('hidden');
+  }
+
+  function openDeleteCustomerModal(id, name) {
+    document.getElementById('delete-cust-form').action = `/customer/delete/${id}`;
+    document.getElementById('delete-cust-text').innerText = `Sigurado ka ba na gusto mong tanggalin si "${name}" (ID #${id}) pati na rin ang kaniyang buong order history?`;
+    document.getElementById('delete-customer-modal').classList.remove('hidden');
+  }
+
+  function closeDeleteCustomerModal() {
+    document.getElementById('delete-customer-modal').classList.add('hidden');
+  }
+
+  function toggleOrderDropdown() {
+  const submenu = document.getElementById('order-submenu');
+  submenu.classList.toggle('hidden');
+}
+
+// Awtomatikong bubukas ang dropdown kapag nasa Order pages ka
+window.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path.includes('add-order') || path.includes('pending-orders') || path.includes('confirmed-orders')) {
+    const submenu = document.getElementById('order-submenu');
+    if (submenu) submenu.classList.remove('hidden');
+  }
+});
+</script>
+
+</body>
+</html>

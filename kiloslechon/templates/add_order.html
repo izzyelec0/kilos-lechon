@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KilosLechón - {{ 'Edit Order #' ~ edit_order.id if edit_order else 'Add Order & Booking' }}</title>
+  <style>
+    :root {
+      --dark-brown: #2E2910;
+      --brunswick-green: #2C5745;
+      --vanilla: #EBE3A7;
+      --tangerine: #EB7D00;
+      --light-bg: #F9F8EE;
+      --white: #FFFFFF;
+      --danger: #d9534f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); color: var(--dark-brown); font-size: 15px; min-height: 100vh; display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .hidden { display: none !important; }
+
+    .wrapper { display: flex; width: 100%; min-height: 100vh; position: relative; }
+
+    /* SIDEBAR STYLING */
+    .sidebar { width: 250px; background-color: var(--dark-brown); color: var(--white); padding: 20px 15px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; overflow-y: auto; }
+    .sidebar h2 { color: var(--tangerine); font-size: 22px; margin-bottom: 25px; text-align: center; font-weight: bold; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; margin-bottom: 8px; background: transparent; color: var(--vanilla); border-radius: 12px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.2s ease; border: none; cursor: pointer; text-align: left; }
+    .nav-btn:hover, .nav-btn.active { background-color: var(--tangerine); color: var(--white); }
+    .logout-link { margin-top: auto; background-color: var(--danger); color: white; justify-content: center; }
+
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; margin-left: 250px; padding: 25px; overflow-y: auto; min-height: 100vh; width: calc(100% - 250px); }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--vanilla); padding: 18px 25px; border-radius: 14px; margin-bottom: 25px; border: 1px solid #e0d68f; flex-wrap: wrap; gap: 15px; }
+    .top-bar h1 { font-size: 26px; color: var(--dark-brown); margin-bottom: 4px; }
+    .top-bar p { color: #555; font-size: 14px; }
+    .btn-maint { background: var(--brunswick-green); color: white; padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+
+    .order-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 25px; align-items: start; }
+    .card { background: var(--white); padding: 22px; border-radius: 14px; border: 1px solid #e2e2e2; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; }
+    .card-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--dark-brown); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; color: var(--dark-brown); }
+    .form-group input, .form-group select { width: 100%; padding: 10px 14px; font-size: 14px; border: 1.5px solid #222; border-radius: 8px; background: #fff; outline: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+    .inventory-mini-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    .inventory-mini-table th, .inventory-mini-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    .inventory-mini-table th { background: var(--brunswick-green); color: white; font-size: 12px; }
+    .pen-badge { background: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+
+    .view-toggle-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f3f1e2; padding: 4px 8px; border-radius: 8px; }
+    .toggle-group { display: flex; gap: 4px; }
+    .view-btn { padding: 6px 14px; font-size: 13px; font-weight: bold; border: none; background: transparent; color: var(--dark-brown); border-radius: 6px; cursor: pointer; }
+    .view-btn.active { background: var(--brunswick-green); color: white; }
+
+    .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .cal-nav-btn { background: var(--vanilla); border: 1px solid var(--dark-brown); padding: 4px 12px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .cal-header { font-weight: bold; font-size: 11px; color: var(--dark-brown); padding-bottom: 6px; border-bottom: 1px solid #ddd; margin-bottom: 4px; }
+    
+    .cal-date { background: var(--light-bg); border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 2px; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; position: relative; }
+    .cal-date:hover:not(.empty):not(.full):not(.past) { background-color: var(--vanilla); border-color: var(--tangerine); }
+    .cal-date.selected { background-color: var(--tangerine) !important; color: white !important; font-weight: bold; }
+    .cal-date.full { background-color: #f8d7da; color: var(--danger); text-decoration: line-through; cursor: not-allowed; opacity: 0.6; }
+    .slot-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-top: 2px; }
+
+    .time-slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .time-chip { padding: 8px; text-align: center; border: 1.5px solid #ccc; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: not-allowed; background: #f8f9fa; color: #adb5bd; }
+    .time-chip.available { border-color: var(--brunswick-green); background: white; color: var(--dark-brown); cursor: pointer; }
+    .time-chip.selected { background: var(--brunswick-green) !important; color: white !important; }
+
+    .btn-submit { display: block; width: 100%; padding: 12px; background: var(--tangerine); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 10px; }
+
+    /* MODAL OVERLAY */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 14px; border: 3px solid var(--brunswick-green); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: 55px; flex-direction: row; justify-content: space-around; align-items: center; position: fixed; bottom: 0; top: auto; left: 0; padding: 4px; background-color: var(--dark-brown); z-index: 1000; }
+      .sidebar h2, .nav-btn span.text, .logout-link, .submenu-container { display: none; }
+      .nav-btn { justify-content: center; padding: 6px; font-size: 20px; width: auto; margin-bottom: 0; }
+      .main-content { margin-left: 0; width: 100%; padding: 15px 15px 90px 15px; }
+      .order-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ORDER DROPDOWN SUBMENU */
+.nav-dropdown-container { 
+  width: 100%; 
+  margin-bottom: 8px; 
+}
+
+.dropdown-toggle-btn { 
+  width: 100%; 
+}
+
+.submenu-container { 
+  display: flex; 
+  flex-direction: column; 
+  padding-left: 20px; 
+  margin-top: 4px; 
+  gap: 4px; 
+}
+
+.submenu-container.hidden { 
+  display: none !important; 
+}
+
+.sub-nav-btn { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: rgba(255,255,255,0.05); 
+  color: var(--vanilla); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  transition: 0.2s ease; 
+}
+
+.sub-nav-btn:hover, .sub-nav-btn.active { 
+  background-color: var(--tangerine); 
+  color: var(--white); 
+}
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h2>KilosLechón</h2>
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" title="Dashboard"><span>📋</span><span class="text">Dashboard</span></a>
+    
+    <!-- ORDER DROPDOWN -->
+    <div class="nav-dropdown-container">
+      <button type="button" class="nav-btn dropdown-toggle-btn" onclick="toggleOrderDropdown()">
+        <span>📦</span><span class="text">Order ▾</span>
+      </button>
+      <div id="order-submenu" class="submenu-container">
+        <a href="{{ url_for('add_order') }}" class="sub-nav-btn active">➕ Add</a>
+        <a href="{{ url_for('pending_orders') }}" class="sub-nav-btn">⏳ Pending</a>
+        <a href="{{ url_for('confirmed_orders') }}" class="sub-nav-btn">✅ Confirmed</a>
+      </div>
+    </div>
+
+    <a href="{{ url_for('customers') }}" class="nav-btn" title="Customers"><span>👥</span><span class="text">Customers</span></a>
+    <a href="{{ url_for('calendar_view') }}" class="nav-btn" title="Calendar"><span>📅</span><span class="text">Calendar</span></a>
+    <a href="{{ url_for('inventory') }}" class="nav-btn" title="Inventory"><span>🐖</span><span class="text">Inventory</span></a>
+    <a href="{{ url_for('sales') }}" class="nav-btn" title="Sales"><span>📊</span><span class="text">Sales</span></a>
+    <a href="{{ url_for('archive') }}" class="nav-btn" title="Archive"><span>🗄️</span><span class="text">Archive</span></a>
+    <a href="{{ url_for('logout') }}" class="nav-btn logout-link" title="Logout"><span>🚪</span><span class="text">Logout</span></a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content fade-in">
+    <div class="top-bar">
+      <div>
+        <h1>{{ '✏️ Edit Order #' ~ edit_order.id if edit_order else 'New Order & Booking' }}</h1>
+        <p>{{ 'I-update ang detalye ng order sa ibaba' if edit_order else "Lapitan's Lechon • Live Stock & Daily Limit System" }}</p>
+      </div>
+      <button class="btn-maint" onclick="openMaintenanceModal()">⚙️ Maintenance & Rates</button>
+    </div>
+
+    <div class="order-grid">
+      <!-- LEFT FORM -->
+      <div class="card">
+        <div class="card-title">{{ 'Update Order Details' if edit_order else 'Order Information' }}</div>
+        
+        <form action="{{ url_for('add_order') }}" method="POST" id="main-order-form">
+          {% if edit_order %}
+          <input type="hidden" name="update_order_id" value="{{ edit_order.id }}">
+          {% endif %}
+
+          <div class="form-group">
+            <label>Customer Name:</label>
+            <input type="text" name="customer_name" id="cust-name-input" list="customer-list" placeholder="Type customer name..." value="{{ edit_order.customer_name if edit_order else '' }}" oninput="handleCustomerInput()" required autocomplete="off">
+            <datalist id="customer-list">
+              {% for cust in customers %}
+                <option value="{{ cust.name }}" data-contact="{{ cust.contact }}" data-gender="{{ cust.gender }}" data-address="{{ cust.address }}">{{ cust.name }} ({{ cust.contact }})</option>
+              {% endfor %}
+            </datalist>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact Number:</label>
+              <input type="text" name="contact" id="cust-contact" value="{{ edit_order.customer_contact if edit_order else '' }}" placeholder="09XXXXXXXXX" required>
+            </div>
+            <div class="form-group">
+              <label>Gender:</label>
+              <select name="gender" id="cust-gender">
+                <option value="Male" {{ 'selected' if edit_order and edit_order.customer_gender == 'Male' else '' }}>Male</option>
+                <option value="Female" {{ 'selected' if edit_order and edit_order.customer_gender == 'Female' else '' }}>Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="background: #f1efe0; padding: 12px; border-radius: 8px;">
+            <label>Service Category:</label>
+            <select name="service_category" id="service-category-select" onchange="handleServiceCategoryChange()">
+              <option value="Standard Order">🐖 Standard Lechon Order (Live Pig Stock)</option>
+              <option value="Paluto Service">🔥 Paluto Service (Customer Supplied Item)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Order Item Type:</label>
+            <select name="order_item_type" id="order-item-type" onchange="handleItemTypeChange()">
+              <option value="Whole Lechon (Tier)">Whole Lechon - Pig Package Tier</option>
+              <option value="Whole Lechon (Custom)">Whole Lechon - Custom Kilos</option>
+              <option value="Lechon Belly">Lechon Belly Roll</option>
+            </select>
+          </div>
+
+          <div id="pig-selection-container">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Pig Classification:</label>
+                <select name="pig_classification" id="pig-classification">
+                  <option value="Native Pig">Native Pig (Mas Maalmas/Lasa)</option>
+                  <option value="White Commercial">White Commercial Pig (Lean Meat)</option>
+                  <option value="Hybrid Crossbreed">Hybrid Crossbreed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Pen Stock Selection:</label>
+                <select name="selected_pen" id="selected-pen-select">
+                  <option value="Pen #01">Pen #01 - Native Pig (22.5 kg)</option>
+                  <option value="Pen #03">Pen #03 - White Pig (26.0 kg)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="tier-selection-group" class="form-group">
+              <label>Select Pig Size Range / Tier:</label>
+              <select id="tier-select" onchange="calculateTotal()">
+                <option value="8000">Small Pig (15-19 kg) - ₱8,000</option>
+                <option value="10000" selected>Medium Pig (20-25 kg) - ₱10,000</option>
+                <option value="13000">Large Pig (26-30 kg) - ₱13,000</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="custom-kilo-group" class="form-row hidden">
+            <div class="form-group"><label>Exact Kilos:</label><input type="number" id="order-kilos" value="10" min="1" oninput="calculateTotal()"></div>
+            <div class="form-group"><label>Rate / Kg:</label><input type="text" id="price-per-kilo" value="₱800" readonly style="background:#eee;"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Details / Customization:</label>
+            <input type="text" name="details" id="order-details-input" value="{{ edit_order.details if edit_order else 'Medium Pig (20-25 kg) - Native Pig' }}" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fulfillment:</label>
+              <select name="fulfillment_type" id="fulfillment-type" onchange="toggleFulfillment()">
+                <option value="Pick-up" {{ 'selected' if edit_order and edit_order.fulfillment_method == 'Pick-up' else '' }}>🏬 Pick-up</option>
+                <option value="Delivery" {{ 'selected' if edit_order and edit_order.fulfillment_method == 'Delivery' else '' }}>🚚 Delivery (+₱200)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment Status:</label>
+              <select name="pay-status">
+                <option value="Downpayment" {{ 'selected' if edit_order and edit_order.payment_status == 'Downpayment' else '' }}>Downpayment Only</option>
+                <option value="Fully Paid" {{ 'selected' if edit_order and (edit_order.payment_status == 'Paid' or edit_order.payment_status == 'Fully Paid') else '' }}>✅ Fully Paid (Full Payment)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="delivery-address-group" class="form-group hidden">
+            <label>Delivery Address:</label>
+            <input type="text" name="address" id="cust-address" value="{{ edit_order.customer_address if edit_order else '' }}" placeholder="Barangay, Street, Los Baños">
+          </div>
+
+          <div class="form-group">
+            <label>Target Date & Time Slot:</label>
+            <input type="text" name="selected-date" id="selected-date" value="{{ edit_order.schedule_datetime if edit_order else '' }}" placeholder="Pumili ng petsa at oras sa kalendaryo →" readonly required style="background:#fff8e7;">
+            <small id="daily-limit-msg" style="display:block; margin-top:4px; font-weight:bold; color:var(--brunswick-green);"></small>
+          </div>
+
+          <input type="hidden" name="total_price" id="total_price_hidden" value="{{ edit_order.total_amount if edit_order else '10000' }}">
+          <div style="background: var(--vanilla); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 16px; text-align: right;">
+            Total Amount: <span id="total-price-display" style="color: var(--tangerine);">₱{{ "{:,.2f}".format(edit_order.total_amount) if edit_order else '10,000.00' }}</span>
+          </div>
+
+          <button type="button" class="btn-submit" onclick="showConfirmModal()">
+            {{ '💾 Save & Update Order' if edit_order else 'Submit Order & Save Customer' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-weight:bold; font-size:16px;">🐖 Live Stock Inventory</span>
+            <span style="font-size: 11px; background: var(--brunswick-green); color: white; padding: 2px 8px; border-radius: 4px; font-weight:bold;">Available</span>
+          </div>
+          <table class="inventory-mini-table">
+            <thead>
+              <tr><th>Pen</th><th>Classification</th><th>Weight</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="pen-badge">Pen #01</span></td><td>Native Pig</td><td>22.5 kg</td><td><strong style="color:var(--brunswick-green);">Ready</strong></td></tr>
+              <tr><td><span class="pen-badge">Pen #03</span></td><td>White Commercial</td><td>26.0 kg</td><td><strong style="color:var(--brunswick-green);">Ready</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">📅 Booking Calendar</div>
+          
+          <div class="view-toggle-bar">
+            <div class="toggle-group">
+              <button class="view-btn active" id="btn-month-view" onclick="setCalendarView('month')">Month</button>
+              <button class="view-btn" id="btn-week-view" onclick="setCalendarView('week')">Week</button>
+            </div>
+            <span style="font-size: 11px; color: var(--danger); font-weight: bold;">Daily Limit: Max <span id="daily-limit-count">5</span> orders</span>
+          </div>
+
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="changeCalendarPage(-1)">◄ Prev</button>
+            <strong id="cal-month-title" style="font-size: 14px;">November 2026</strong>
+            <button class="cal-nav-btn" onclick="changeCalendarPage(1)">Next ►</button>
+          </div>
+
+          <div id="cal-grid-container" class="cal-grid"></div>
+
+          <div style="margin-top: 15px;">
+            <label style="font-size: 13px; font-weight: bold;">Select Time Slot:</label>
+            <div class="time-slot-grid">
+              <div class="time-chip" id="slot-10" onclick="pickTime('10:00 AM', this)">10:00 AM</div>
+              <div class="time-chip" id="slot-12" onclick="pickTime('12:00 PM', this)">12:00 PM</div>
+              <div class="time-chip" id="slot-04" onclick="pickTime('04:00 PM', this)">04:00 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color: var(--brunswick-green); margin-bottom: 8px;">❓ Kumpirmahin ang {{ 'Pag-update' if edit_order else 'Pagsusumite' }}</h3>
+    <p style="font-size: 14px; color: #444; margin-bottom: 20px;">
+      Sigurado ka ba na gusto mong {{ 'i-save ang mga pagbabago para sa order na ito' if edit_order else 'itala ang bagong order na ito' }}?
+    </p>
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button type="button" class="btn-submit" style="background:#6c757d; width:auto; margin-top:0;" onclick="closeConfirmModal()">Kanselahin</button>
+      <button type="button" class="btn-submit" style="background:var(--brunswick-green); width:auto; margin-top:0;" onclick="submitFinalForm()">Oo, I-save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAINTENANCE MODAL -->
+<div id="maintenance-modal" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width: 520px;">
+    <h2 style="color: var(--dark-brown);">⚙️ Maintenance & Rates</h2>
+    <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Update standard prices & daily booking limits instantly.</p>
+    <div class="form-row">
+      <div class="form-group"><label>Small (15-19kg):</label><input type="number" id="rate-tier-small" value="8000"></div>
+      <div class="form-group"><label>Medium (20-25kg):</label><input type="number" id="rate-tier-med" value="10000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Large (26-30kg):</label><input type="number" id="rate-tier-large" value="13000"></div>
+      <div class="form-group"><label>Custom Rate/Kg:</label><input type="number" id="rate-custom-kilo" value="800"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Delivery Fee:</label><input type="number" id="rate-delivery" value="200"></div>
+      <div class="form-group"><label>Max Daily Order Limit:</label><input type="number" id="rate-daily-limit" value="5"></div>
+    </div>
+    <button class="btn-submit" onclick="saveMaintenanceRates()">💾 Save & Apply</button>
+    <button class="btn-submit" style="background:#aaa; margin-top:8px;" onclick="closeMaintenanceModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+  function toggleOrderDropdown() {
+    const submenu = document.getElementById('order-submenu');
+    submenu.classList.toggle('hidden');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    if (path.includes('add-order') || path.includes('pending-orders') || path.includes('confirmed-orders')) {
+      const submenu = document.getElementById('order-submenu');
+      if (submenu) submenu.classList.remove('hidden');
+    }
+    initCalendar();
+    handleServiceCategoryChange();
+  });
+
+  let globalRates = { tierSmall: 8000, tierMed: 10000, tierLarge: 13000, customKilo: 800, deliveryFee: 200, maxDailyLimit: 5 };
+  let currentView = 'month';
+  let currentDate = new Date(2026, 10, 10);
+  let selectedDatePart = '';
+  let selectedTimePart = '';
+
+  const bookedOrdersPerDate = { '2026-11-12': 5, '2026-11-15': 4, '2026-11-20': 5 };
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  function initCalendar() { renderCalendar(); }
+
+  function handleServiceCategoryChange() {
+    const serviceCategory = document.getElementById('service-category-select').value;
+    const itemSelect = document.getElementById('order-item-type');
+    const pigContainer = document.getElementById('pig-selection-container');
+    itemSelect.innerHTML = '';
+
+    if (serviceCategory === 'Paluto Service') {
+      const palutoOptions = ['Whole Lechon', 'Dinuguan', 'Lechon Head', 'Lechon Belly', 'Baka', 'Kambing'];
+      palutoOptions.forEach(opt => {
+        const el = document.createElement('option');
+        el.value = `Paluto: ${opt}`;
+        el.innerText = `🔥 ${opt}`;
+        itemSelect.appendChild(el);
+      });
+      pigContainer.classList.add('hidden');
+    } else {
+      const standardOptions = [
+        { val: 'Whole Lechon (Tier)', txt: 'Whole Lechon - Pig Package Tier' },
+        { val: 'Whole Lechon (Custom)', txt: 'Whole Lechon - Custom Kilos' },
+        { val: 'Lechon Belly', txt: 'Lechon Belly Roll' }
+      ];
+      standardOptions.forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.val;
+        el.innerText = opt.txt;
+        itemSelect.appendChild(el);
+      });
+      pigContainer.classList.remove('hidden');
+    }
+    handleItemTypeChange();
+  }
+
+  function handleItemTypeChange() {
+    const itemVal = document.getElementById('order-item-type').value;
+    const isTier = itemVal === 'Whole Lechon (Tier)';
+    const isCustom = itemVal === 'Whole Lechon (Custom)';
+    
+    document.getElementById('tier-selection-group').classList.toggle('hidden', !isTier);
+    document.getElementById('custom-kilo-group').classList.toggle('hidden', !isCustom);
+    calculateTotal();
+  }
+
+  function handleCustomerInput() {
+    const val = document.getElementById('cust-name-input').value.trim();
+    const list = document.getElementById('customer-list');
+    let matchedOption = null;
+
+    for (let i = 0; i < list.options.length; i++) {
+      if (list.options[i].value.toLowerCase() === val.toLowerCase()) {
+        matchedOption = list.options[i];
+        break;
+      }
+    }
+
+    if (matchedOption) {
+      document.getElementById('cust-contact').value = matchedOption.getAttribute('data-contact') || '';
+      document.getElementById('cust-gender').value = matchedOption.getAttribute('data-gender') || 'Male';
+      document.getElementById('cust-address').value = matchedOption.getAttribute('data-address') || '';
+    }
+  }
+
+  function setCalendarView(view) {
+    currentView = view;
+    document.getElementById('btn-month-view').classList.toggle('active', view === 'month');
+    document.getElementById('btn-week-view').classList.toggle('active', view === 'week');
+    renderCalendar();
+  }
+
+  function changeCalendarPage(delta) {
+    if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() + delta);
+    else currentDate.setDate(currentDate.getDate() + (delta * 7));
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById('cal-grid-container');
+    const title = document.getElementById('cal-month-title');
+    grid.innerHTML = '';
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+      const h = document.createElement('div'); h.className = 'cal-header'; h.innerText = d; grid.appendChild(h);
+    });
+
+    title.innerText = `${monthNames[month]} ${year}`;
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div'); empty.className = 'cal-date empty'; grid.appendChild(empty);
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const currentOrders = bookedOrdersPerDate[dateKey] || 0;
+      const isFull = currentOrders >= globalRates.maxDailyLimit;
+
+      const cell = document.createElement('div');
+      cell.className = `cal-date ${isFull ? 'full' : ''}`;
+      cell.innerHTML = `<span>${day}</span><span class="slot-badge" style="background:${isFull ? '#d9534f' : '#2C5745'}; color:white;">${currentOrders}/${globalRates.maxDailyLimit}</span>`;
+
+      if (!isFull) {
+        const dateStr = `${monthNames[month].slice(0,3)} ${day}, ${year}`;
+        cell.onclick = function() {
+          document.querySelectorAll('.cal-date').forEach(d => d.classList.remove('selected'));
+          cell.classList.add('selected');
+          selectedDatePart = dateStr;
+          document.getElementById('daily-limit-msg').innerText = ` Slots available on ${dateStr} (${currentOrders}/${globalRates.maxDailyLimit} booked)`;
+          enableTimeSlots();
+          updateScheduleString();
+        };
+      } else {
+        cell.onclick = function() {
+          alert(`Pasensya na, puno na ang slot para sa petsang ${dateKey}! (Max ${globalRates.maxDailyLimit} orders reached)`);
+        };
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  function enableTimeSlots() {
+    ['slot-10', 'slot-12', 'slot-04'].forEach(id => document.getElementById(id).classList.add('available'));
+  }
+
+  function pickTime(timeStr, el) {
+    if (!el.classList.contains('available')) return;
+    document.querySelectorAll('.time-chip').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTimePart = timeStr;
+    updateScheduleString();
+  }
+
+  function updateScheduleString() {
+    if (selectedDatePart && selectedTimePart) {
+      document.getElementById('selected-date').value = `${selectedDatePart} - ${selectedTimePart}`;
+    }
+  }
+
+  function calculateTotal() {
+    const serviceCategory = document.getElementById('service-category-select').value;
+    const itemVal = document.getElementById('order-item-type').value;
+    let base = 0;
+
+    if (serviceCategory === 'Paluto Service') {
+      base = 3000;
+    } else {
+      if (itemVal === 'Whole Lechon (Tier)') base = parseFloat(document.getElementById('tier-select').value) || 0;
+      else if (itemVal === 'Whole Lechon (Custom)') base = (parseFloat(document.getElementById('order-kilos').value) || 0) * globalRates.customKilo;
+      else if (itemVal === 'Lechon Belly') base = 3600;
+    }
+
+    const delFee = document.getElementById('fulfillment-type').value === 'Delivery' ? globalRates.deliveryFee : 0;
+    const total = base + delFee;
+    document.getElementById('total_price_hidden').value = total.toFixed(2);
+    document.getElementById('total-price-display').innerText = '₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+  }
+
+  function toggleFulfillment() {
+    const isDelivery = document.getElementById('fulfillment-type').value === 'Delivery';
+    document.getElementById('delivery-address-group').classList.toggle('hidden', !isDelivery);
+    calculateTotal();
+  }
+
+  function openMaintenanceModal() { document.getElementById('maintenance-modal').classList.remove('hidden'); }
+  function closeMaintenanceModal() { document.getElementById('maintenance-modal').classList.add('hidden'); }
+
+  function saveMaintenanceRates() {
+    globalRates.tierSmall = parseFloat(document.getElementById('rate-tier-small').value) || 0;
+    globalRates.tierMed = parseFloat(document.getElementById('rate-tier-med').value) || 0;
+    globalRates.tierLarge = parseFloat(document.getElementById('rate-tier-large').value) || 0;
+    globalRates.customKilo = parseFloat(document.getElementById('rate-custom-kilo').value) || 0;
+    globalRates.deliveryFee = parseFloat(document.getElementById('rate-delivery').value) || 0;
+    globalRates.maxDailyLimit = parseInt(document.getElementById('rate-daily-limit').value) || 5;
+    
+    document.getElementById('daily-limit-count').innerText = globalRates.maxDailyLimit;
+    renderCalendar();
+    calculateTotal();
+    closeMaintenanceModal();
+  }
+
+  function showConfirmModal() {
+    if (!document.getElementById('main-order-form').checkValidity()) {
+      document.getElementById('main-order-form').reportValidity();
+      return;
+    }
+    document.getElementById('confirm-modal').classList.remove('hidden');
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+  }
+
+  function submitFinalForm() {
+    document.getElementById('main-order-form').submit();
+  }
+</script>
+
+</body>
+</html>
